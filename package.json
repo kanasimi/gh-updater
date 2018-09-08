@@ -1,0 +1,33 @@
+{
+	"name" : "gh-updater",
+	"title" : "GitHub updater",
+	"version" : "1.0.20180908",
+	"description" : "GitHub repository auto-updater using 7zip or unzip",
+	"main" : "GitHub.updater.node.js",
+	"dependencies" : {},
+	"devDependencies" : {},
+	"engines" : {
+		"node" : ">=0.10"
+	},
+	"bin" : {
+		"gh-updater" : "GitHub.updater.node.js"
+	},
+	"scripts" : {
+	},
+	"repository" : {
+		"type" : "git",
+		"url" : "git+https://github.com/kanasimi/gh-updater.git"
+	},
+	"keywords" : [ "GitHub", "updater" ],
+	"author" : {
+		"name" : "vimunci",
+		"email" : "vimunci@gmail.com",
+		"url" : "https://github.com/kanasimi/CeJS"
+	},
+	"contributors" : "vimunci",
+	"license" : "BSD-3-Clause",
+	"bugs" : {
+		"url" : "https://github.com/kanasimi/gh-updater/issues"
+	},
+	"homepage" : "https://github.com/kanasimi/gh-updater"
+}
