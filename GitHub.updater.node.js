@@ -55,23 +55,23 @@ if (typeof module === 'object') {
 }
 
 function handle_arguments(repository_path, target_directory, callback) {
-	if (PATTERN_repository_path.test(repository_path)) {
+	if (repository_path ? PATTERN_repository_path.test(repository_path)
+			: default_repository_path) {
 		// run in CLI. GitHub 泛用的更新工具。
-		check_and_update(repository_path, target_directory, function() {
-			default_post_install_for_all();
-			post_install && post_install();
-		});
-
-	} else if (!repository_path && default_repository_path) {
-		// default action
-		check_and_update(default_repository_path, target_directory, function() {
-			default_post_install();
-			post_install && post_install();
-		});
+		check_and_update(repository_path || default_repository_path,
+				target_directory, function() {
+					repository_path ? default_post_install_for_all()
+							: default_post_install();
+					callback && callback();
+				});
 
 	} else {
 		// node GitHub.updater.node.js user/repository-branch [target_directory]
-		console.log('Usage:\n	' + process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
+		console.log((repository_path ? 'Invalid repository: '
+				+ JSON.stringify(repository_path) : '')
+				+ 'Usage:\n	'
+				+ process.argv[0].replace(/[^\\\/]+$/)[0]
+				+ ' '
 				+ process.argv[1].replace(/[^\\\/]+$/)[0]
 				+ ' "user/repository-branch" ["target_directory"]'
 				+ '\n\ndefault repository path: ' + default_repository_path);
