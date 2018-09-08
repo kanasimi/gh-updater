@@ -1,7 +1,7 @@
 {
 	"name" : "gh-updater",
 	"title" : "GitHub updater",
-	"version" : "1.0.20180914",
+	"version" : "1.0.20180915",
 	"description" : "GitHub repository auto-updater using 7zip or unzip",
 	"main" : "GitHub.updater.node.js",
 	"dependencies" : {},

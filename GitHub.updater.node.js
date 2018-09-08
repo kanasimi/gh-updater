@@ -32,7 +32,7 @@ var default_repository_path = 'kanasimi/CeJS', p7zip_path = [ '7z',
 // modify from _CeL.loader.nodejs.js
 repository_path_list_file = './_repository_path_list.txt',
 /** {String}CeJS 更新工具相對於 CeJS 根目錄的路徑。e.g., "CeJS-master/_for include/" */
-update_script_directory = '/_for include/',
+update_script_directory = '_for include/',
 
 // const
 node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
@@ -479,7 +479,10 @@ function default_post_install_for_all(base_directory) {
 }
 
 function default_post_install(base_directory) {
-	console.info('Update the tool itself...');
+	if (!base_directory)
+		base_directory = '';
+
+	// console.info('Update the tool itself...');
 	// copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
 
 	console.info('Setup basic execution environment...');
@@ -501,7 +504,7 @@ function default_post_install(base_directory) {
 }
 
 function copy_file(source_name, taregt_name, base_directory) {
-	var taregt_path = base_directory + (taregt_name || source_name);
+	var taregt_path = (base_directory || '') + (taregt_name || source_name);
 	try {
 		node_fs.unlinkSync(taregt_path);
 	} catch (e) {
