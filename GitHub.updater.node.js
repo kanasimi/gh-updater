@@ -47,7 +47,7 @@ target_file, latest_version_file, PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-
 if (typeof module === 'object') {
 	// required as module
 	module.exports = {
-		detect_version : detect_version,
+		check_version : check_version,
 		update : check_and_update
 	};
 
@@ -138,7 +138,7 @@ function detect_base_path(repository, branch) {
  *            install repository to this local file system path.
  *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
  */
-function detect_version(repository_path, callback, target_directory) {
+function check_version(repository_path, callback, target_directory) {
 	if (!repository_path) {
 		throw 'No repository path specified!';
 	}
@@ -244,7 +244,7 @@ function detect_version(repository_path, callback, target_directory) {
 
 function check_and_update(repository_path, post_install, target_directory) {
 
-	detect_version(repository_path, function(version_data,
+	check_version(repository_path, function(version_data,
 			recover_working_directory) {
 		var has_version = version_data.has_version,
 		//

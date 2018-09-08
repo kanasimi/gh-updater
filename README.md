@@ -6,10 +6,12 @@
 The project aims to develop a GitHub repository auto-updater tool.
 
 ##  usage 運行方式
+
+### As CLI update tool
 ``` sh
 node GitHub.updater.node.js user/repository-branch [target_directory]
 ```
-default target directory: repository-branch/
+default target directory: <code>repository-branch/</code>
 
 If installed as <code>node_modules/.bin/gh-updater</code>:
 ``` sh
@@ -24,8 +26,18 @@ node GitHub.updater.node.js kanasimi/gh-updater
 node GitHub.updater.node.js kanasimi/gh-updater .
 ```
 
+### As node.js module
+``` JavaScript
+const updater = require('gh-updater');
+updater.check_version('kanasimi/gh-updater', version_data => console.log(version_data) );
+```
+
 ## Requires
+In UNIX or macOS, thie update tool will use unzip to extract files.
 In Windows, the client must install [7-Zip](https://en.wikipedia.org/wiki/7-Zip) first.
+
+# Note
+The update tool checks the latest commits of GitHub repository, NOT releases or npm package.
 
 ## Contact 聯絡我們
 Contact us at [GitHub](https://github.com/kanasimi/gh-updater/issues).
