@@ -1,12 +1,11 @@
 /**
  * @name gh-updater. GitHub repository auto-updater, and auto-update CeJS via
  *       GitHub. GitHub repository 自動更新工具 / 自動配置好最新版本 CeJS 程式庫的工具。
+ * 
  * @fileoverview 將會採用系統已有的 7-Zip 程式，自動取得並解開 GitHub 最新版本 repository zip
  *               壓縮檔案至當前工作目錄下 (e.g., ./CeJS-master)。
  * 
  * @example<code>
-
-# node _CeL.updater.node.js user/repository-branch target_directory
 
 TODO:
 use Zlib
@@ -16,7 +15,9 @@ use Zlib
  * @since 2017/3/13 14:39:41 初版<br />
  *        2018/8/20 12:52:34 改寫成 GitHub 泛用的更新工具，並將 _CeL.path.txt →
  *        _repository_path_list.txt<br />
- *        2018/8/30 20:17:7 增加 target_directory 功能。
+ *        2018/8/30 20:17:7 增加 target_directory 功能。<br />
+ *        2018/9/8 18:29:29 Create npm package: gh-updater, _CeL.updater.node.js →
+ *        gh-updater/GitHub.updater.node.js
  */
 
 'use strict';
@@ -24,20 +25,49 @@ use Zlib
 // --------------------------------------------------------------------------------------------
 // setup. 設定區。
 
-var p7zip_path = [ '7z',
+var default_repository_path = 'kanasimi/CeJS', p7zip_path = [ '7z',
 // e.g., install p7zip package via yum
 '7za', 'unzip', '"C:\\Program Files\\7-Zip\\7z.exe"' ],
-/** {String}更新工具相對於 CeJS 根目錄的路徑。e.g., "CeJS-master/_for include/" */
+
+// modify from _CeL.loader.nodejs.js
+repository_path_list_file = './_repository_path_list.txt',
+/** {String}CeJS 更新工具相對於 CeJS 根目錄的路徑。e.g., "CeJS-master/_for include/" */
 update_script_directory = '/_for include/',
+
+// const
+node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
+
+/** {String}repository path */
+repository_path = process.argv[2], target_directory = process.argv[3],
 /** {String}下載之後將壓縮檔存成這個檔名。 const */
 target_file, latest_version_file, PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 
 // --------------------------------------------------------------------------------------------
 
-// const
-var node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
-// modify from _CeL.loader.nodejs.js
-repository_path_list_file = './_repository_path_list.txt';
+if (typeof module === 'object') {
+	// required as module
+	module.exports = {
+		detect_version : detect_version,
+		update : check_and_update
+	};
+
+} else if (PATTERN_repository_path.test(repository_path)) {
+	// run in CLI. GitHub 泛用的更新工具。
+	check_and_update(repository_path, default_post_install_for_all,
+			target_directory);
+
+} else if (!repository_path && default_repository_path) {
+	// default action
+	check_and_update(default_repository_path, default_post_install,
+			target_directory);
+
+} else {
+	// node GitHub.updater.node.js user/repository-branch [target_directory]
+	console.log('Usage:\n	' + process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
+			+ process.argv[1].replace(/[^\\\/]+$/)[0]
+			+ ' "user/repository-branch" ["target_directory"]'
+			+ '\n\ndefault repository path: ', default_repository_path);
+}
 
 // --------------------------------------------------------------------------------------------
 
@@ -98,15 +128,23 @@ function detect_base_path(repository, branch) {
 
 // --------------------------------------------------------------------------------------------
 
-function detect_version(repository_path, callback) {
-	;
-}
+/**
+ * detect repository version
+ * 
+ * @param {String}repository_path
+ *            repository path e.g., user/repository-branch
+ * @param {Function}callback
+ * @param {String}[target_directory]
+ *            install repository to this local file system path.
+ *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
+ */
+function detect_version(repository_path, callback, target_directory) {
+	if (!repository_path) {
+		throw 'No repository path specified!';
+	}
 
-function check_update(repository_path, post_install) {
 	/** {String}Repository name */
-	var repository = repository_path.trim().match(PATTERN_repository_path),
-	/** const {String}目標目錄位置。將會解壓縮至這個目錄底下。 default: repository_path/ */
-	target_directory = process.argv[3], original_working_directory,
+	var repository = repository_path.trim().match(PATTERN_repository_path), original_working_directory,
 	//
 	user_name = repository[1], branch = repository[3] || 'master';
 	repository = repository[2];
@@ -138,10 +176,11 @@ function check_update(repository_path, post_install) {
 		latest_version_file = target_file.replace(/[^.]+$/g, 'version.json');
 
 	console.info('Read ' + latest_version_file);
-	var have_version;
+	var has_version, has_version_data;
 	try {
-		have_version = JSON.parse(node_fs.readFileSync(latest_version_file)
-				.toString()).version;
+		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
+				.toString());
+		has_version = has_version_data.version;
 	} catch (e) {
 	}
 
@@ -157,6 +196,7 @@ function check_update(repository_path, post_install) {
 			'user-agent' : 'CeL_updater/2.0'
 		}
 	}, function(response) {
+		response.setTimeout(10000);
 		var buffer_array = [], sum_size = 0;
 
 		response.on('data', function(data) {
@@ -170,27 +210,27 @@ function check_update(repository_path, post_install) {
 			latest_commit = JSON.parse(contents),
 			//
 			latest_version = latest_commit.commit.author.date;
-			if (have_version === latest_version) {
-				console.info('Already have the latest version: '
-				//
-				+ have_version);
-				if (original_working_directory)
-					// recover working directory.
+
+			try {
+				callback({
+					user_name : user_name,
+					repository : repository,
+					branch : branch,
+
+					has_version_data : has_version_data,
+					has_version : has_version,
+
+					latest_commit : latest_commit,
+					latest_version : latest_version,
+
+					has_new_version : has_version !== latest_version
+				}, original_working_directory
+				// recover working directory.
+				&& function recover_working_directory() {
 					process.chdir(original_working_directory);
-			} else {
-				process.title = 'Update ' + repository_path;
-				console.info('Update: ' + (have_version
-				//
-				? have_version + '\n     → ' : 'to ') + latest_version);
-				update_via_7zip(latest_version,
-				//
-				user_name, repository, branch, function() {
-					if (typeof post_install === 'function')
-						post_install(target_directory || '');
-					if (original_working_directory)
-						// recover working directory.
-						process.chdir(original_working_directory);
-				}, target_directory);
+				});
+			} catch (e) {
+				// TODO: handle exception
 			}
 		});
 	})
@@ -200,6 +240,35 @@ function check_update(repository_path, post_install) {
 		// console.error(e);
 		throw e;
 	});
+}
+
+function check_and_update(repository_path, post_install, target_directory) {
+
+	detect_version(repository_path, function(version_data,
+			recover_working_directory) {
+		var has_version = version_data.has_version,
+		//
+		latest_version = version_data.latest_version;
+
+		if (has_version === latest_version) {
+			console.info('Already have the latest version: ' + has_version);
+			recover_working_directory && recover_working_directory();
+
+		} else {
+			process.title = 'Update ' + repository_path;
+			console.info('Update: '
+					+ (has_version ? has_version + '\n     → ' : 'to ')
+					+ latest_version);
+			update_via_7zip(latest_version, version_data.user_name,
+			//
+			version_data.repository, version_data.branch, function() {
+				if (typeof post_install === 'function')
+					post_install(target_directory || '');
+				recover_working_directory && recover_working_directory();
+			}, target_directory);
+		}
+
+	}, target_directory);
 
 }
 
@@ -395,29 +464,14 @@ function move_all_files_under_directory(source_directory, target_directory,
 }
 
 // --------------------------------------------------------------------------------------------
-
-// {String}repository path
-var repository_path = process.argv[2], default_repository_path = 'kanasimi/CeJS';
-if (PATTERN_repository_path.test(repository_path)) {
-	// GitHub 泛用的更新工具。
-	check_update(repository_path, default_post_install_for_all);
-
-} else if (repository_path) {
-	console.log('Usage:\n	node ' + process.argv[1]
-			+ ' "user/repository-branch" "target_directory"'
-			+ '\n\ndefault repository path: ', default_repository_path);
-
-} else {
-	// default action
-	check_update(default_repository_path, default_post_install);
-}
+// actions after file extracted
 
 function default_post_install_for_all(base_directory) {
 }
 
 function default_post_install(base_directory) {
 	console.info('Update the tool itself...');
-	copy_file('_CeL.updater.node.js', null, base_directory);
+	copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
 
 	console.info('Setup basic execution environment...');
 	copy_file('_CeL.loader.nodejs.js', null, base_directory);

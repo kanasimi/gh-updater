@@ -1,1 +1,1 @@
-node _CeL.updater.node.js || pause
+node GitHub.updater.node.js || pause

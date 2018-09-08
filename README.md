@@ -7,7 +7,7 @@ The project aims to develop a GitHub repository auto-updater tool.
 
 ##  usage 運行方式
 ``` sh
-node _CeL.updater.node.js user/repository-branch target_directory
+node GitHub.updater.node.js user/repository-branch [target_directory]
 ```
 
 ## Contact 聯絡我們
