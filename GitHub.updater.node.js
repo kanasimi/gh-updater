@@ -37,8 +37,6 @@ update_script_directory = '/_for include/',
 // const
 node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
 
-/** {String}repository path */
-repository_path = process.argv[2], target_directory = process.argv[3],
 /** {String}下載之後將壓縮檔存成這個檔名。 const */
 target_file, latest_version_file, PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 
@@ -48,25 +46,36 @@ if (typeof module === 'object') {
 	// required as module
 	module.exports = {
 		check_version : check_version,
-		update : check_and_update
+		// TODO: use Promise
+		update : handle_arguments
 	};
 
-} else if (PATTERN_repository_path.test(repository_path)) {
-	// run in CLI. GitHub 泛用的更新工具。
-	check_and_update(repository_path, default_post_install_for_all,
-			target_directory);
-
-} else if (!repository_path && default_repository_path) {
-	// default action
-	check_and_update(default_repository_path, default_post_install,
-			target_directory);
-
 } else {
-	// node GitHub.updater.node.js user/repository-branch [target_directory]
-	console.log('Usage:\n	' + process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
-			+ process.argv[1].replace(/[^\\\/]+$/)[0]
-			+ ' "user/repository-branch" ["target_directory"]'
-			+ '\n\ndefault repository path: ', default_repository_path);
+	handle_arguments(process.argv[2], process.argv[3]);
+}
+
+function handle_arguments(repository_path, target_directory, callback) {
+	if (PATTERN_repository_path.test(repository_path)) {
+		// run in CLI. GitHub 泛用的更新工具。
+		check_and_update(repository_path, target_directory, function() {
+			default_post_install_for_all();
+			post_install && post_install();
+		});
+
+	} else if (!repository_path && default_repository_path) {
+		// default action
+		check_and_update(default_repository_path, target_directory, function() {
+			default_post_install();
+			post_install && post_install();
+		});
+
+	} else {
+		// node GitHub.updater.node.js user/repository-branch [target_directory]
+		console.log('Usage:\n	' + process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
+				+ process.argv[1].replace(/[^\\\/]+$/)[0]
+				+ ' "user/repository-branch" ["target_directory"]'
+				+ '\n\ndefault repository path: ' + default_repository_path);
+	}
 }
 
 // --------------------------------------------------------------------------------------------
@@ -132,7 +141,7 @@ function detect_base_path(repository, branch) {
  * detect repository version
  * 
  * @param {String}repository_path
- *            repository path e.g., user/repository-branch
+ *            repository path. e.g., user/repository-branch
  * @param {Function}callback
  * @param {String}[target_directory]
  *            install repository to this local file system path.
@@ -242,7 +251,7 @@ function check_version(repository_path, callback, target_directory) {
 	});
 }
 
-function check_and_update(repository_path, post_install, target_directory) {
+function check_and_update(repository_path, target_directory, post_install) {
 
 	check_version(repository_path, function(version_data,
 			recover_working_directory) {
@@ -471,7 +480,7 @@ function default_post_install_for_all(base_directory) {
 
 function default_post_install(base_directory) {
 	console.info('Update the tool itself...');
-	copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
+	// copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
 
 	console.info('Setup basic execution environment...');
 	copy_file('_CeL.loader.nodejs.js', null, base_directory);
