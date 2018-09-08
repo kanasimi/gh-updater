@@ -6,15 +6,15 @@ var child_process = require('child_process');
 
 var child = child_process.spawn(updater, process.argv, {
 	stdio : 'inherit'
-})
+});
 child.on('close', function(code) {
 	process.exit(code);
-})
+});
 
 var handle_termination_signal = function(signal) {
 	process.on(signal, function signal_handler() {
 		if (!child.killed) {
-			child.kill(signal)
+			child.kill(signal);
 		}
 	})
 }
