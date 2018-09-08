@@ -9,8 +9,25 @@ The project aims to develop a GitHub repository auto-updater tool.
 ``` sh
 node GitHub.updater.node.js user/repository-branch [target_directory]
 ```
+default target directory: repository-branch/
+
+If installed as <code>node_modules/.bin/gh-updater</code>:
+``` sh
+gh-updater user/repository-branch [target_directory]
+```
+
+e.g.,
+``` sh
+# install into gh-updater-master/
+node GitHub.updater.node.js kanasimi/gh-updater
+# install into current directory
+node GitHub.updater.node.js kanasimi/gh-updater .
+```
+
+## Requires
+In Windows, the client must install [7-Zip](https://en.wikipedia.org/wiki/7-Zip) first.
 
 ## Contact 聯絡我們
-Contact us at [GitHub](https://github.com/kanasimi/CeJS/issues).
+Contact us at [GitHub](https://github.com/kanasimi/gh-updater/issues).
 
 [![logo](https://raw.githubusercontent.com/kanasimi/CeJS/master/_test%20suite/misc/logo.jpg)](http://lyrics.meicho.com.tw/)
