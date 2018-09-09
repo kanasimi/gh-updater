@@ -59,9 +59,12 @@ function handle_arguments(repository_path, target_directory, callback) {
 			: default_repository_path) {
 		// run in CLI. GitHub 泛用的更新工具。
 		check_and_update(repository_path || default_repository_path,
-				target_directory, function() {
+				target_directory, function(recover_working_directory,
+						target_directory) {
 					repository_path ? default_post_install_for_all()
 							: default_post_install();
+					if (recover_working_directory)
+						recover_working_directory();
 					callback && callback();
 				});
 
@@ -251,7 +254,8 @@ function check_version(repository_path, callback, target_directory) {
 	});
 }
 
-function check_and_update(repository_path, target_directory, post_install) {
+// callback(recover_working_directory, target_directory)
+function check_and_update(repository_path, target_directory, callback) {
 
 	check_version(repository_path, function(version_data,
 			recover_working_directory) {
@@ -259,9 +263,16 @@ function check_and_update(repository_path, target_directory, post_install) {
 		//
 		latest_version = version_data.latest_version;
 
+		function recover() {
+			if (typeof callback === 'function')
+				callback(recover_working_directory, target_directory || '');
+			else if (recover_working_directory)
+				recover_working_directory();
+		}
+
 		if (has_version === latest_version) {
 			console.info('Already have the latest version: ' + has_version);
-			recover_working_directory && recover_working_directory();
+			recover();
 
 		} else {
 			process.title = 'Update ' + repository_path;
@@ -269,12 +280,8 @@ function check_and_update(repository_path, target_directory, post_install) {
 					+ (has_version ? has_version + '\n     → ' : 'to ')
 					+ latest_version);
 			update_via_7zip(latest_version, version_data.user_name,
-			//
-			version_data.repository, version_data.branch, function() {
-				if (typeof post_install === 'function')
-					post_install(target_directory || '');
-				recover_working_directory && recover_working_directory();
-			}, target_directory);
+					version_data.repository, version_data.branch, recover,
+					target_directory);
 		}
 
 	}, target_directory);
