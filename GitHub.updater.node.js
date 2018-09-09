@@ -61,11 +61,14 @@ function handle_arguments(repository_path, target_directory, callback) {
 		// run in CLI. GitHub 泛用的更新工具。
 		target_directory, function(version_data, recover_working_directory,
 				target_directory, update_script_path) {
-			if (version_data.has_new_version)
+			if (version_data.has_new_version) {
 				// 在 repository 目錄下執行 post_install()
 				(repository_path ? default_post_install_for_all
 						: default_post_install)(target_directory,
 						update_script_path);
+				// 成功安裝了 repository 的組件。
+				console.info('Successfully installed ' + repository);
+			}
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory)
 				recover_working_directory();
@@ -160,6 +163,7 @@ function check_version(repository_path, callback, target_directory) {
 		throw 'No repository path specified!';
 	}
 
+	// parse repository path
 	/** {String}Repository name */
 	var repository = repository_path.trim().match(PATTERN_repository_path), original_working_directory,
 	//
@@ -185,10 +189,8 @@ function check_version(repository_path, callback, target_directory) {
 		target_directory += path_separator;
 	}
 
-	var latest_version_file = repository + '-' + branch + 'version.json';
-
+	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
 	console.info('Read latest version cache file ' + latest_version_file);
-	var has_version, has_version_data;
 	try {
 		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
 				.toString());
@@ -446,10 +448,12 @@ function update_via_7zip(version_data, post_install, target_directory) {
 			var update_script_path = (target_directory ? target_directory
 					.replace(/[\\\/]+$/, '') : repository + '-' + branch)
 					+ path_separator + default_update_script_directory;
+
+			// 成功解壓縮。
+			console.info('Successful decompression: ' + repository);
+
 			if (typeof post_install === 'function')
 				post_install(update_script_path);
-
-			console.info('Done.\n\n' + 'Installation completed successfully.');
 		}
 
 		// throw 'Some error occurred! Bad archive?';
@@ -510,9 +514,12 @@ function default_post_install_for_all(base_directory) {
 }
 
 function default_post_install(base_directory, update_script_path) {
-	// console.info('Update the tool itself...');
-	// copy_library_file('gh-updater/GitHub.updater.node.js', null,
-	// base_directory);
+	if (false) {
+		// using npm instead: require('gh-updater');
+		console.info('Update the tool itself...');
+		copy_library_file('gh-updater/GitHub.updater.node.js', null,
+				base_directory);
+	}
 
 	console.info('Setup basic execution environment...');
 	copy_library_file('_CeL.loader.nodejs.js', null, base_directory,
