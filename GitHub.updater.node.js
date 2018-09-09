@@ -67,7 +67,7 @@ function handle_arguments(repository_path, target_directory, callback) {
 						: default_post_install)(target_directory,
 						update_script_path);
 				// 成功安裝了 repository 的組件。
-				console.info('Successfully installed ' + repository);
+				console.info('Successfully installed ' + repository_path);
 			}
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory)
