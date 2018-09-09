@@ -57,16 +57,18 @@ if (typeof module === 'object') {
 function handle_arguments(repository_path, target_directory, callback) {
 	if (repository_path ? PATTERN_repository_path.test(repository_path)
 			: default_repository_path) {
-		// run in CLI. GitHub 泛用的更新工具。
 		check_and_update(repository_path || default_repository_path,
-				target_directory, function(recover_working_directory,
-						target_directory) {
-					repository_path ? default_post_install_for_all()
-							: default_post_install();
-					if (recover_working_directory)
-						recover_working_directory();
-					callback && callback();
-				});
+		// run in CLI. GitHub 泛用的更新工具。
+		target_directory, function(version_data, recover_working_directory) {
+			if (version_data.has_new_version)
+				// 在 repository 目錄下執行 post_install()
+				repository_path ? default_post_install_for_all()
+						: default_post_install();
+			// 之後回到原先的目錄底下。
+			if (recover_working_directory)
+				recover_working_directory();
+			callback && callback();
+		});
 
 	} else {
 		// node GitHub.updater.node.js user/repository-branch [target_directory]
@@ -254,7 +256,6 @@ function check_version(repository_path, callback, target_directory) {
 	});
 }
 
-// callback(recover_working_directory, target_directory)
 function check_and_update(repository_path, target_directory, callback) {
 
 	check_version(repository_path, function(version_data,
@@ -265,16 +266,12 @@ function check_and_update(repository_path, target_directory, callback) {
 
 		function recover() {
 			if (typeof callback === 'function')
-				callback(recover_working_directory, target_directory || '');
+				callback(version_data, recover_working_directory);
 			else if (recover_working_directory)
 				recover_working_directory();
 		}
 
-		if (has_version === latest_version) {
-			console.info('Already have the latest version: ' + has_version);
-			recover();
-
-		} else {
+		if (version_data.has_new_version) {
 			process.title = 'Update ' + repository_path;
 			console.info('Update: '
 					+ (has_version ? has_version + '\n     → ' : 'to ')
@@ -282,6 +279,10 @@ function check_and_update(repository_path, target_directory, callback) {
 			update_via_7zip(latest_version, version_data.user_name,
 					version_data.repository, version_data.branch, recover,
 					target_directory);
+
+		} else {
+			console.info('Already have the latest version: ' + has_version);
+			recover();
 		}
 
 	}, target_directory);
