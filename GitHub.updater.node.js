@@ -67,7 +67,8 @@ function handle_arguments(repository_path, target_directory, callback) {
 						: default_post_install)(target_directory,
 						update_script_path);
 				// 成功安裝了 repository 的組件。
-				console.info('Successfully installed ' + repository_path);
+				console.info('Successfully installed '
+						+ version_data.repository);
 			}
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory)
@@ -336,7 +337,8 @@ function update_via_7zip(version_data, post_install, target_directory) {
 
 	extract_program_path = detect_extract_program_path(extract_program_path);
 	if (!extract_program_path)
-		console.error('Please set up the extract_program_path first!');
+		// 'Please set up the extract_program_path first!'
+		console.error('Please install 7-Zip first: https://www.7-zip.org/');
 
 	// assert: typeof extract_program_path === 'string'
 
