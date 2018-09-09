@@ -511,10 +511,12 @@ function default_post_install_for_all(base_directory) {
 
 function default_post_install(base_directory, update_script_path) {
 	// console.info('Update the tool itself...');
-	// copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
+	// copy_library_file('gh-updater/GitHub.updater.node.js', null,
+	// base_directory);
 
 	console.info('Setup basic execution environment...');
-	copy_file('_CeL.loader.nodejs.js', null, base_directory, update_script_path);
+	copy_library_file('_CeL.loader.nodejs.js', null, base_directory,
+			update_script_path);
 	try {
 		// Do not overwrite repository_path_list_file.
 		node_fs.accessSync(base_directory + repository_path_list_file,
@@ -531,7 +533,8 @@ function default_post_install(base_directory, update_script_path) {
 	}
 }
 
-function copy_file(source_name, taregt_name, base_directory, update_script_path) {
+function copy_library_file(source_name, taregt_name, base_directory,
+		update_script_path) {
 	var taregt_path = (base_directory || '') + (taregt_name || source_name);
 	try {
 		node_fs.unlinkSync(taregt_path);
@@ -539,7 +542,7 @@ function copy_file(source_name, taregt_name, base_directory, update_script_path)
 		// TODO: handle exception
 	}
 	if (false)
-		console.log('copy_file [' + update_script_path + source_name + ']→['
-				+ taregt_path + ']');
-	node_fs.renameSync(update_script_directory + source_name, taregt_path);
+		console.log('copy_library_file [' + update_script_path + source_name
+				+ ']→[' + taregt_path + ']');
+	node_fs.renameSync(update_script_path + source_name, taregt_path);
 }
