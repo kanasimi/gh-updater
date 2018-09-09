@@ -41,7 +41,7 @@ updater.update('kanasimi/gh-updater', '.');
 In UNIX or macOS, thie update tool will use unzip to extract files.
 In Windows, the client must install [7-Zip](https://en.wikipedia.org/wiki/7-Zip) first.
 
-# Note
+## Note
 The update tool checks the latest commits of GitHub repository, NOT releases or npm package.
 
 ## Contact 聯絡我們

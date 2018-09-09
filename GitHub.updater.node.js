@@ -244,6 +244,8 @@ function check_version(repository_path, callback, target_directory) {
 					has_version : has_version,
 
 					has_new_version : has_version !== latest_version
+					//
+					&& latest_version
 				}, original_working_directory
 				// recover working directory.
 				&& function recover_working_directory() {
