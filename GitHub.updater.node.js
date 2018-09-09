@@ -13,8 +13,8 @@ use Zlib
  </code>
  * 
  * @since 2017/3/13 14:39:41 初版<br />
- *        2018/8/20 12:52:34 改寫成 GitHub 泛用的更新工具，並將 _CeL.path.txt →
- *        _repository_path_list.txt<br />
+ *        2018/8/20 12:52:34 改寫成 GitHub 泛用的更新工具 GitHub Upgrade Tool，並將
+ *        _CeL.path.txt → _repository_path_list.txt<br />
  *        2018/8/30 20:17:7 增加 target_directory 功能。<br />
  *        2018/9/8 18:29:29 Create npm package: gh-updater, _CeL.updater.node.js →
  *        gh-updater/GitHub.updater.node.js
@@ -44,6 +44,9 @@ PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 if (typeof module === 'object') {
 	// required as module
 	module.exports = {
+		parse_repository_path : parse_repository_path,
+		installed_version : installed_version,
+		get_GitHub_version : get_GitHub_version,
 		check_version : check_version,
 		// TODO: use Promise
 		update : handle_arguments
@@ -149,27 +152,27 @@ function detect_base_path(repository, branch) {
 
 // --------------------------------------------------------------------------------------------
 
-/**
- * detect repository version
- * 
- * @param {String}repository_path
- *            repository path. e.g., user/repository-branch
- * @param {Function}callback
- * @param {String}[target_directory]
- *            install repository to this local file system path.
- *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
- */
-function check_version(repository_path, callback, target_directory) {
-	if (!repository_path) {
-		throw 'No repository path specified!';
-	}
+// parse repository path
+function parse_repository_path(repository_path) {
+	if (typeof repository_path === 'object' && repository_path.user_name
+			&& repository_path.repository && repository_path.branch)
+		return repository_path;
 
-	// parse repository path
 	/** {String}Repository name */
 	var repository = repository_path.trim().match(PATTERN_repository_path), original_working_directory,
 	//
 	user_name = repository[1], branch = repository[3] || 'master';
 	repository = repository[2];
+
+	return {
+		user_name : user_name,
+		repository : repository,
+		branch : branch
+	};
+}
+
+function installed_version(repository_path, callback, target_directory) {
+	var version_data = parse_repository_path(repository_path), repository = version_data.repository, branch = version_data.branch;
 
 	if (!target_directory) {
 		target_directory = detect_base_path(repository, branch);
@@ -201,6 +204,35 @@ function check_version(repository_path, callback, target_directory) {
 	} catch (e) {
 	}
 
+	Onject.assign(version_data, {
+		check_date : new Date(),
+
+		latest_version_file : latest_version_file,
+		has_version_data : has_version_data,
+		has_version : has_version
+	});
+
+	function recover_working_directory() {
+		original_working_directory && process.chdir(original_working_directory);
+	}
+
+	if (typeof callback === 'function')
+		try {
+			callback(version_data, original_working_directory
+			// recover working directory.
+			&& recover_working_directory);
+		} catch (e) {
+			recover_working_directory();
+		}
+	else
+		recover_working_directory();
+
+	return version_data;
+}
+
+function get_GitHub_version(repository_path, callback, target_directory) {
+	var version_data = parse_repository_path(repository_path), user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
+
 	console.info('Get the infomation of latest version of '
 	// 取得 GitHub 最新版本 infomation。
 	+ repository + '...');
@@ -228,41 +260,50 @@ function check_version(repository_path, callback, target_directory) {
 			//
 			latest_version = latest_commit.commit.author.date;
 
-			try {
-				// version_data
-				callback({
-					check_date : new Date(),
+			Object.assign(version_data, {
+				check_date : new Date(),
 
-					user_name : user_name,
-					repository : repository,
-					branch : branch,
+				latest_commit : latest_commit,
+				latest_version : latest_version
+			});
 
-					latest_commit : latest_commit,
-					latest_version : latest_version,
-
-					latest_version_file : latest_version_file,
-					has_version_data : has_version_data,
-					has_version : has_version,
-
-					has_new_version : has_version !== latest_version
-					//
-					&& latest_version
-				}, original_working_directory
-				// recover working directory.
-				&& function recover_working_directory() {
-					process.chdir(original_working_directory);
-				});
-			} catch (e) {
-				// TODO: handle exception
-			}
+			callback(version_data);
 		});
 	})
 	//
 	.on('error', function(e) {
 		// network error?
-		// console.error(e);
-		throw e;
+		console.error(e);
+		callback(version_data);
 	});
+}
+
+/**
+ * detect repository version
+ * 
+ * @param {String}repository_path
+ *            repository path. e.g., user/repository-branch
+ * @param {Function}callback
+ * @param {String}[target_directory]
+ *            install repository to this local file system path.
+ *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
+ */
+function check_version(repository_path, callback, target_directory) {
+	if (!repository_path) {
+		throw 'No repository path specified!';
+	}
+
+	installed_version(repository_path, function(version_data,
+			recover_working_directory) {
+		get_GitHub_version(version_data, function(/* version_data */) {
+			version_data.has_new_version
+			//
+			= version_data.has_version !== version_data.latest_version
+					&& version_data.latest_version;
+
+			callback(version_data, recover_working_directory);
+		}, target_directory);
+	}, target_directory);
 }
 
 function check_and_update(repository_path, target_directory, callback) {
