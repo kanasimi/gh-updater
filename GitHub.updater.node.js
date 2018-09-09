@@ -81,12 +81,10 @@ function handle_arguments(repository_path, target_directory, callback) {
 		});
 
 	} else {
-		// node GitHub.updater.node.js user/repository-branch [target_directory]
 		console.log((repository_path ? 'Invalid repository: '
-				+ JSON.stringify(repository_path) : '')
-				+ 'Usage:\n	'
-				+ process.argv[0].replace(/[^\\\/]+$/)[0]
-				+ ' '
+		// node GitHub.updater.node.js user/repository-branch [target_directory]
+		+ JSON.stringify(repository_path) : '') + 'Usage:\n	'
+				+ process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
 				+ process.argv[1].replace(/[^\\\/]+$/)[0]
 				+ ' "user/repository-branch" ["target_directory"]'
 				+ '\n\ndefault repository path: ' + default_repository_path);
@@ -204,7 +202,7 @@ function installed_version(repository_path, callback, target_directory) {
 	} catch (e) {
 	}
 
-	Onject.assign(version_data, {
+	Object.assign(version_data, {
 		check_date : new Date(),
 
 		latest_version_file : latest_version_file,
