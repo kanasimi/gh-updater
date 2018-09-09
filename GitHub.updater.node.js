@@ -25,20 +25,19 @@ use Zlib
 // --------------------------------------------------------------------------------------------
 // setup. 設定區。
 
-var default_repository_path = 'kanasimi/CeJS', p7zip_path = [ '7z',
+var default_repository_path = 'kanasimi/CeJS', extract_program_path = [ '7z',
 // e.g., install p7zip package via yum
 '7za', 'unzip', '"C:\\Program Files\\7-Zip\\7z.exe"' ],
 
 // modify from _CeL.loader.nodejs.js
 repository_path_list_file = './_repository_path_list.txt',
-/** {String}CeJS 更新工具相對於 CeJS 根目錄的路徑。e.g., "CeJS-master/_for include/" */
-update_script_directory = '_for include/',
+/** {String}CeJS 更新工具相對於 CeJS 根目錄的路徑。 e.g., "CeJS-master/_for include/". const */
+default_update_script_directory = '_for include/',
 
 // const
 node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
 
-/** {String}下載之後將壓縮檔存成這個檔名。 const */
-target_file, latest_version_file, PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
+PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 
 // --------------------------------------------------------------------------------------------
 
@@ -61,11 +60,12 @@ function handle_arguments(repository_path, target_directory, callback) {
 		check_and_update(repository_path || default_repository_path,
 		// run in CLI. GitHub 泛用的更新工具。
 		target_directory, function(version_data, recover_working_directory,
-				target_directory) {
+				target_directory, update_script_path) {
 			if (version_data.has_new_version)
 				// 在 repository 目錄下執行 post_install()
 				(repository_path ? default_post_install_for_all
-						: default_post_install)(target_directory);
+						: default_post_install)(target_directory,
+						update_script_path);
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory)
 				recover_working_directory();
@@ -185,19 +185,16 @@ function check_version(repository_path, callback, target_directory) {
 		target_directory += path_separator;
 	}
 
-	if (!target_file)
-		target_file = repository + '-' + branch + '.zip';
+	var latest_version_file = repository + '-' + branch + 'version.json';
 
-	if (!latest_version_file)
-		// read repository-branch.version.json
-		latest_version_file = target_file.replace(/[^.]+$/g, 'version.json');
-
-	console.info('Read ' + latest_version_file);
+	console.info('Read latest version cache file ' + latest_version_file);
 	var has_version, has_version_data;
 	try {
 		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
 				.toString());
-		has_version = has_version_data.version;
+		has_version = has_version_data.latest_version;
+		// 不累積古老的(前前次)之 version_data。
+		delete has_version_data.has_version_data;
 	} catch (e) {
 	}
 
@@ -229,16 +226,20 @@ function check_version(repository_path, callback, target_directory) {
 			latest_version = latest_commit.commit.author.date;
 
 			try {
+				// version_data
 				callback({
+					check_date : new Date(),
+
 					user_name : user_name,
 					repository : repository,
 					branch : branch,
 
-					has_version_data : has_version_data,
-					has_version : has_version,
-
 					latest_commit : latest_commit,
 					latest_version : latest_version,
+
+					latest_version_file : latest_version_file,
+					has_version_data : has_version_data,
+					has_version : has_version,
 
 					has_new_version : has_version !== latest_version
 				}, original_working_directory
@@ -267,10 +268,10 @@ function check_and_update(repository_path, target_directory, callback) {
 		//
 		latest_version = version_data.latest_version;
 
-		function recover() {
+		function recover(update_script_path) {
 			if (typeof callback === 'function')
 				callback(version_data, recover_working_directory,
-						target_directory || '');
+						target_directory || '', update_script_path);
 			else if (recover_working_directory)
 				recover_working_directory();
 		}
@@ -280,9 +281,7 @@ function check_and_update(repository_path, target_directory, callback) {
 			console.info('Update: '
 					+ (has_version ? has_version + '\n     → ' : 'to ')
 					+ latest_version);
-			update_via_7zip(latest_version, version_data.user_name,
-					version_data.repository, version_data.branch, recover,
-					target_directory);
+			update_via_7zip(version_data, recover, target_directory);
 
 		} else {
 			console.info('Already have the latest version: ' + has_version);
@@ -295,32 +294,52 @@ function check_and_update(repository_path, target_directory, callback) {
 
 // --------------------------------------------------------------------------------------------
 
-function update_via_7zip(latest_version, user_name, repository, branch,
-		post_install, target_directory) {
-	// detect 7z path
-	if (!Array.isArray(p7zip_path)) {
-		p7zip_path = [ p7zip_path ];
-	}
-	// 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
-	if (!p7zip_path.some(function(path) {
-		// mute stderr
-		var stderr = process.stderr.write;
-		process.stderr.write = function() {
-		};
-		try {
-			child_process.execSync(path + ' -h');
-		} catch (e) {
-			path = null;
+/**
+ * determine what extract program to use.
+ * 
+ * @param {Array|String}extract_program_path
+ *            Array: path list to test, String: using this path.
+ */
+function detect_extract_program_path(extract_program_path) {
+	if (Array.isArray(extract_program_path)) {
+		// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
+		if (!extract_program_path.some(function(path) {
+			// mute stderr
+			// var stderr = process.stderr.write;
+			// process.stderr.write = function() { };
+			try {
+				child_process.execSync(path + ' -h', {
+					// pass I/O to the child process
+					// https://nodejs.org/api/child_process.html#child_process_options_stdio
+					stdio : 'ignore'
+				});
+			} catch (e) {
+				path = null;
+			}
+			// process.stderr.write = stderr;
+			return path && (extract_program_path = path);
+		})) {
+			// Can not find any extract program.
+			extract_program_path = null;
 		}
-		process.stderr.write = stderr;
-		return path && (p7zip_path = path);
-	})) {
-		console.error('Please set up the p7zip_path first!');
-		p7zip_path = null;
 	}
+
+	return extract_program_path;
+}
+
+function update_via_7zip(version_data, post_install, target_directory) {
+	var latest_version = version_data.latest_version, user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
+
+	extract_program_path = detect_extract_program_path(extract_program_path);
+	if (!extract_program_path)
+		console.error('Please set up the extract_program_path first!');
+
+	// assert: typeof extract_program_path === 'string'
 
 	// --------------------------------------------------------------------------------------------
 
+	/** {String}下載之後將壓縮檔存成這個檔名。 */
+	var target_file = repository + '-' + branch + '.zip';
 	try {
 		// 清理戰場。
 		node_fs.unlinkSync(target_file);
@@ -387,21 +406,23 @@ function update_via_7zip(latest_version, user_name, repository, branch,
 					+ '! Please try to run again.';
 		}
 
-		if (!p7zip_path) {
+		if (!extract_program_path) {
 			throw 'Please extract the archive file manually: ' + target_file;
 		}
 
 		var command,
 		//
 		quoted_target_file = '"' + target_file + '"';
-		if (p7zip_path.includes('unzip')) {
-			command = p7zip_path + ' -t ' + quoted_target_file + ' && '
-			// 解開 GitHub 最新版本壓縮檔案 via unzip。
-			+ p7zip_path + ' -x -o ' + quoted_target_file;
+		if (extract_program_path.includes('unzip')) {
+			command = extract_program_path + ' -t ' + quoted_target_file
+					+ ' && '
+					// 解開 GitHub 最新版本壓縮檔案 via unzip。
+					+ extract_program_path + ' -x -o ' + quoted_target_file;
 		} else {
-			command = p7zip_path + ' t ' + quoted_target_file + ' && '
-			// 解開 GitHub 最新版本壓縮檔案 via 7z。
-			+ p7zip_path + ' x -y ' + quoted_target_file;
+			command = extract_program_path + ' t ' + quoted_target_file
+					+ ' && '
+					// 解開 GitHub 最新版本壓縮檔案 via 7z。
+					+ extract_program_path + ' x -y ' + quoted_target_file;
 		}
 
 		child_process.execSync(command, {
@@ -411,10 +432,8 @@ function update_via_7zip(latest_version, user_name, repository, branch,
 		});
 
 		if (latest_version) {
-			node_fs.writeFileSync(latest_version_file, JSON.stringify({
-				check_date : new Date(),
-				version : latest_version
-			}));
+			node_fs.writeFileSync(version_data.latest_version_file, JSON
+					.stringify(version_data));
 
 			try {
 				// 解壓縮完成之後，可以不必留著程式碼檔案。 TODO: backup
@@ -424,11 +443,11 @@ function update_via_7zip(latest_version, user_name, repository, branch,
 
 			move_all_files_under_directory(repository + '-' + branch,
 					target_directory, true);
-			update_script_directory = (target_directory || repository + '-'
-					+ branch).replace(/[\\\/]+$/, '')
-					+ path_separator + update_script_directory;
-			typeof post_install === 'function'
-					&& post_install(target_directory || '');
+			var update_script_path = (target_directory ? target_directory
+					.replace(/[\\\/]+$/, '') : repository + '-' + branch)
+					+ path_separator + default_update_script_directory;
+			if (typeof post_install === 'function')
+				post_install(update_script_path);
 
 			console.info('Done.\n\n' + 'Installation completed successfully.');
 		}
@@ -490,19 +509,19 @@ function move_all_files_under_directory(source_directory, target_directory,
 function default_post_install_for_all(base_directory) {
 }
 
-function default_post_install(base_directory) {
+function default_post_install(base_directory, update_script_path) {
 	// console.info('Update the tool itself...');
 	// copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
 
 	console.info('Setup basic execution environment...');
-	copy_file('_CeL.loader.nodejs.js', null, base_directory);
+	copy_file('_CeL.loader.nodejs.js', null, base_directory, update_script_path);
 	try {
 		// Do not overwrite repository_path_list_file.
 		node_fs.accessSync(base_directory + repository_path_list_file,
 				node_fs.constants.R_OK);
 	} catch (e) {
 		try {
-			node_fs.renameSync(update_script_directory
+			node_fs.renameSync(update_script_path
 					+ repository_path_list_file.replace(/(\.[^.]+)$/,
 							'.sample$1'), base_directory
 					+ repository_path_list_file);
@@ -512,7 +531,7 @@ function default_post_install(base_directory) {
 	}
 }
 
-function copy_file(source_name, taregt_name, base_directory) {
+function copy_file(source_name, taregt_name, base_directory, update_script_path) {
 	var taregt_path = (base_directory || '') + (taregt_name || source_name);
 	try {
 		node_fs.unlinkSync(taregt_path);
@@ -520,7 +539,7 @@ function copy_file(source_name, taregt_name, base_directory) {
 		// TODO: handle exception
 	}
 	if (false)
-		console.log('copy_file [' + update_script_directory + source_name
-				+ ']→[' + taregt_path + ']');
+		console.log('copy_file [' + update_script_path + source_name + ']→['
+				+ taregt_path + ']');
 	node_fs.renameSync(update_script_directory + source_name, taregt_path);
 }
