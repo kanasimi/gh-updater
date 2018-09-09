@@ -51,6 +51,7 @@ if (typeof module === 'object') {
 	};
 
 } else {
+	// default action: update
 	handle_arguments(process.argv[2], process.argv[3]);
 }
 
@@ -59,15 +60,17 @@ function handle_arguments(repository_path, target_directory, callback) {
 			: default_repository_path) {
 		check_and_update(repository_path || default_repository_path,
 		// run in CLI. GitHub 泛用的更新工具。
-		target_directory, function(version_data, recover_working_directory) {
+		target_directory, function(version_data, recover_working_directory,
+				target_directory) {
 			if (version_data.has_new_version)
 				// 在 repository 目錄下執行 post_install()
-				repository_path ? default_post_install_for_all()
-						: default_post_install();
+				(repository_path ? default_post_install_for_all
+						: default_post_install)(target_directory);
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory)
 				recover_working_directory();
-			callback && callback();
+			if (typeof callback === 'function')
+				callback(version_data);
 		});
 
 	} else {
@@ -266,7 +269,8 @@ function check_and_update(repository_path, target_directory, callback) {
 
 		function recover() {
 			if (typeof callback === 'function')
-				callback(version_data, recover_working_directory);
+				callback(version_data, recover_working_directory,
+						target_directory || '');
 			else if (recover_working_directory)
 				recover_working_directory();
 		}
@@ -487,9 +491,6 @@ function default_post_install_for_all(base_directory) {
 }
 
 function default_post_install(base_directory) {
-	if (!base_directory)
-		base_directory = '';
-
 	// console.info('Update the tool itself...');
 	// copy_file('gh-updater/GitHub.updater.node.js', null, base_directory);
 
