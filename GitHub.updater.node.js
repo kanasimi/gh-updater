@@ -157,7 +157,7 @@ function parse_repository_path(repository_path) {
 		return repository_path;
 
 	/** {String}Repository name */
-	var repository = repository_path.trim().match(PATTERN_repository_path), original_working_directory,
+	var repository = repository_path.trim().match(PATTERN_repository_path),
 	//
 	user_name = repository[1], branch = repository[3] || 'master';
 	repository = repository[2];
@@ -170,7 +170,9 @@ function parse_repository_path(repository_path) {
 }
 
 function installed_version(repository_path, callback, target_directory) {
-	var version_data = parse_repository_path(repository_path), repository = version_data.repository, branch = version_data.branch;
+	var original_working_directory, version_data = parse_repository_path(repository_path),
+	//
+	repository = version_data.repository, branch = version_data.branch;
 
 	if (!target_directory) {
 		target_directory = detect_base_path(repository, branch);
