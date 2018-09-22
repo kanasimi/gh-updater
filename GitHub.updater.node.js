@@ -194,7 +194,7 @@ function installed_version(repository_path, callback, target_directory) {
 	}
 
 	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
-	console.info('Read latest version cache file ' + latest_version_file);
+	console.info('Read latest version from cache file ' + latest_version_file);
 	try {
 		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
 				.toString());
@@ -355,8 +355,6 @@ function detect_extract_program_path(extract_program_path) {
 			// process.stderr.write = function() { };
 			try {
 				child_process.execSync(path + ' -h', {
-					// pass I/O to the child process
-					// https://nodejs.org/api/child_process.html#child_process_options_stdio
 					stdio : 'ignore'
 				});
 			} catch (e) {
