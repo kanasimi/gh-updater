@@ -27,7 +27,9 @@ use Zlib
 
 var default_repository_path = 'kanasimi/CeJS', extract_program_path = [ '7z',
 // e.g., install p7zip package via yum
-'7za', 'unzip', '"C:\\Program Files\\7-Zip\\7z.exe"' ],
+'7za', 'unzip',
+// '%ProgramFiles%\\7-Zip\\7z.exe',
+'"' + (process.env.ProgramFiles || 'C:\\Program Files') + '\\7-Zip\\7z.exe"' ],
 
 // modify from _CeL.loader.nodejs.js
 repository_path_list_file = './_repository_path_list.txt',
@@ -351,6 +353,7 @@ function detect_extract_program_path(extract_program_path) {
 		// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
 		if (!extract_program_path.some(function(path) {
 			// console.log('detect_extract_program_path: ' + path);
+
 			// mute stderr
 			// var stderr = process.stderr.write;
 			// process.stderr.write = function() { };
@@ -377,8 +380,10 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	var latest_version = version_data.latest_version, user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
 
 	extract_program_path = detect_extract_program_path(extract_program_path);
-	if (!extract_program_path) {
-		// read 7z program path from registry
+	if (!extract_program_path
+	// Windows 10: 'win32'
+	&& process.platform.startsWith('win')) {
+		// read 7z program path from Windows registry
 		node_fs
 				.writeFileSync(
 						'detect_7z_path.js',
