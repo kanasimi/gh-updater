@@ -41,7 +41,7 @@ PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 
 // --------------------------------------------------------------------------------------------
 
-if (typeof module === 'object') {
+if (typeof module === 'object' && module !== require.main) {
 	// required as module
 	module.exports = {
 		parse_repository_path : parse_repository_path,
@@ -350,6 +350,7 @@ function detect_extract_program_path(extract_program_path) {
 	if (Array.isArray(extract_program_path)) {
 		// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
 		if (!extract_program_path.some(function(path) {
+			// console.log('detect_extract_program_path: ' + path);
 			// mute stderr
 			// var stderr = process.stderr.write;
 			// process.stderr.write = function() { };
@@ -358,6 +359,7 @@ function detect_extract_program_path(extract_program_path) {
 					stdio : 'ignore'
 				});
 			} catch (e) {
+				// console.error(e);
 				path = null;
 			}
 			// process.stderr.write = stderr;
@@ -375,11 +377,38 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	var latest_version = version_data.latest_version, user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
 
 	extract_program_path = detect_extract_program_path(extract_program_path);
-	if (!extract_program_path)
+	if (!extract_program_path) {
+		// read 7z program path from registry
+		node_fs
+				.writeFileSync(
+						'detect_7z_path.js',
+						"var WshShell=WScript.CreateObject('WScript.Shell'),p7z_path;"
+								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path64');}catch(e){}"
+								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path');}catch(e){}"
+								+ "var fso = WScript.CreateObject('Scripting.FileSystemObject');"
+								+ "var fso=WScript.CreateObject('Scripting.FileSystemObject'),file=fso.OpenTextFile('7z_path.txt',2,-1);"
+								+ "file.Write(p7z_path||'');file.Close();");
+		child_process.execSync('CScript.exe detect_7z_path.js', {
+			stdio : 'ignore'
+		});
+		try {
+			extract_program_path = '"'
+					+ node_fs.readFileSync('7z_path.txt').toString().trim()
+					+ '7z.exe' + '"';
+			// console.log(extract_program_path);
+			extract_program_path = detect_extract_program_path([ extract_program_path ]);
+		} catch (e) {
+			// TODO: handle exception
+		}
+	}
+
+	if (!extract_program_path) {
 		// 'Please set up the extract_program_path first!'
 		console.error('Please install 7-Zip first: https://www.7-zip.org/');
+	}
 
 	// assert: typeof extract_program_path === 'string'
+	// console.log(extract_program_path);
 
 	// --------------------------------------------------------------------------------------------
 
