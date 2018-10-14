@@ -196,7 +196,8 @@ function installed_version(repository_path, callback, target_directory) {
 	}
 
 	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
-	console.info('Read latest version from cache file ' + latest_version_file);
+	console.info('Read the latest version from cache file '
+			+ latest_version_file);
 	try {
 		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
 				.toString());
@@ -383,20 +384,23 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	if (!extract_program_path
 	// Windows 10: 'win32'
 	&& process.platform.startsWith('win')) {
-		// read 7z program path from Windows registry
+		// @see CeL.application.storage.archive
+		// @see run_JSctipt() @ CeL.application.platform.nodejs
+		// TODO: use stdout
+		// try to read 7z program path from Windows registry
 		node_fs
 				.writeFileSync(
 						'detect_7z_path.js',
 						"var WshShell=WScript.CreateObject('WScript.Shell'),p7z_path;"
 								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path64');}catch(e){}"
 								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path');}catch(e){}"
-								+ "var fso = WScript.CreateObject('Scripting.FileSystemObject');"
 								+ "var fso=WScript.CreateObject('Scripting.FileSystemObject'),file=fso.OpenTextFile('7z_path.txt',2,-1);"
 								+ "file.Write(p7z_path||'');file.Close();");
 		child_process.execSync('CScript.exe detect_7z_path.js', {
 			stdio : 'ignore'
 		});
 		try {
+			// add_quote()
 			extract_program_path = '"'
 					+ node_fs.readFileSync('7z_path.txt').toString().trim()
 					+ '7z.exe' + '"';
