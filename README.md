@@ -3,7 +3,7 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/kanasimi/gh-updater/badge.svg?targetFile=package.json)](https://snyk.io/test/github/kanasimi/gh-updater?targetFile=package.json)
 
 # GitHub repository auto-updater
-The project aims to develop a GitHub repository auto-updater tool.
+The project aims to develop a GitHub repository auto-updater tool using 7-Zip or unzip.
 
 ##  usage 運行方式
 

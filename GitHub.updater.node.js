@@ -10,7 +10,12 @@
 TODO:
 use Zlib
 
+use https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/Expand-Archive?view=powershell-6
+https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-copyhere
+
  </code>
+ * 
+ * @see https://stackoverflow.com/questions/1021557/how-to-unzip-a-file-using-the-command-line
  * 
  * @since 2017/3/13 14:39:41 初版<br />
  *        2018/8/20 12:52:34 改寫成 GitHub 泛用的更新工具 GitHub Upgrade Tool，並將
@@ -384,30 +389,30 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	if (!extract_program_path
 	// Windows 10: 'win32'
 	&& process.platform.startsWith('win')) {
-		// @see CeL.application.storage.archive
-		// @see run_JSctipt() @ CeL.application.platform.nodejs
-		// TODO: use stdout
-		// try to read 7z program path from Windows registry
-		node_fs
-				.writeFileSync(
-						'detect_7z_path.js',
-						"var WshShell=WScript.CreateObject('WScript.Shell'),p7z_path;"
-								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path64');}catch(e){}"
-								+ "try{p7z_path=WshShell.RegRead('HKCU\\\\Software\\\\7-Zip\\\\Path');}catch(e){}"
-								+ "var fso=WScript.CreateObject('Scripting.FileSystemObject'),file=fso.OpenTextFile('7z_path.txt',2,-1);"
-								+ "file.Write(p7z_path||'');file.Close();");
-		child_process.execSync('CScript.exe detect_7z_path.js', {
-			stdio : 'ignore'
-		});
 		try {
+			extract_program_path = (process.env.TEMP || process.env.TMP || '.')
+					+ path_separator + 'detect_7z_path.' + Math.random()
+					+ '.js';
+			// @see CeL.application.storage.archive
+			// @see run_JSctipt() @ CeL.application.platform.nodejs
+			// try to read 7z program path from Windows registry
+			node_fs
+					.writeFileSync(
+							extract_program_path,
+							"var WshShell=WScript.CreateObject('WScript.Shell'),key='HKCU\\\\Software\\\\7-Zip\\\\Path';"
+									// use stdout
+									+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
+									+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}");
+			extract_program_path = child_process.spawnSync('CScript.exe', [
+					'//Nologo', extract_program_path ]);
 			// add_quote()
 			extract_program_path = '"'
-					+ node_fs.readFileSync('7z_path.txt').toString().trim()
-					+ '7z.exe' + '"';
+					+ extract_program_path.stdout.toString().trim() + '7z.exe'
+					+ '"';
 			// console.log(extract_program_path);
 			extract_program_path = detect_extract_program_path([ extract_program_path ]);
 		} catch (e) {
-			// TODO: handle exception
+			extract_program_path = null;
 		}
 	}
 
