@@ -37,6 +37,13 @@ updater.check_version('kanasimi/gh-updater', version_data => console.log(version
 updater.update('kanasimi/gh-updater', '.');
 ```
 
+## OS support
+| Platform | support |
+| --- | --- |
+| Windows | ✔️ |
+| macOS | ✔️ |
+| UNIX, Linux | ✔️ |
+
 ## Requires
 In UNIX or macOS, thie update tool will use unzip to extract files.
 In Windows, the client must install [7-Zip](https://en.wikipedia.org/wiki/7-Zip) first.
