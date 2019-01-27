@@ -644,6 +644,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	} catch (e) {
 		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
+		;
 	}
 	if (false) {
 		console.log('copy_library_file [' + update_script_path + source_name
