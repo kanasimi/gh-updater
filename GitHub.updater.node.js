@@ -1,3 +1,5 @@
+/** global: Buffer */
+
 /**
  * @name gh-updater. GitHub repository auto-updater, and auto-update CeJS via
  *       GitHub. GitHub repository 自動更新工具 / 自動配置好最新版本 CeJS 程式庫的工具。
@@ -24,8 +26,6 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
  *        2018/9/8 18:29:29 Create npm package: gh-updater, _CeL.updater.node.js →
  *        gh-updater/GitHub.updater.node.js
  */
-
-/** global: Buffer */
 
 'use strict';
 
@@ -83,10 +83,12 @@ function handle_arguments(repository_path, target_directory, callback) {
 						+ version_data.repository);
 			}
 			// 之後回到原先的目錄底下。
-			if (recover_working_directory)
+			if (recover_working_directory) {
 				recover_working_directory();
-			if (typeof callback === 'function')
+			}
+			if (typeof callback === 'function') {
 				callback(version_data);
+			}
 		});
 
 	} else {
@@ -109,6 +111,7 @@ function detect_base_path(repository, branch) {
 		CeL_path_list = node_fs.readFileSync(repository_path_list_file)
 				.toString();
 	} catch (e) {
+		// node_fs.readFileSync() may throw but no matter
 	}
 
 	if (!CeL_path_list) {
@@ -166,8 +169,9 @@ function detect_base_path(repository, branch) {
 // parse repository path
 function parse_repository_path(repository_path) {
 	if (typeof repository_path === 'object' && repository_path.user_name
-			&& repository_path.repository && repository_path.branch)
+			&& repository_path.repository && repository_path.branch) {
 		return repository_path;
+	}
 
 	/** {String}Repository name */
 	var repository = repository_path.trim().match(PATTERN_repository_path),
@@ -203,10 +207,10 @@ function installed_version(repository_path, callback, target_directory) {
 			process.chdir(target_directory.slice(0, -(path_separator
 					+ repository + '-' + branch).length));
 		}
-		target_directory += path_separator;
+		// target_directory += path_separator;
 	}
 
-	var latest_version_file = repository + '-' + branch + '.version.json', has_version = undefined, has_version_data;
+	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
 	console.info('Read the latest version from cache file '
 			+ latest_version_file);
 	try {
@@ -216,6 +220,7 @@ function installed_version(repository_path, callback, target_directory) {
 		// 不累積古老的(前前次)之 version_data。
 		delete has_version_data.has_version_data;
 	} catch (e) {
+		has_version = undefined;
 	}
 
 	Object.assign(version_data, {
@@ -230,7 +235,7 @@ function installed_version(repository_path, callback, target_directory) {
 		original_working_directory && process.chdir(original_working_directory);
 	}
 
-	if (typeof callback === 'function')
+	if (typeof callback === 'function') {
 		try {
 			callback(version_data, original_working_directory
 			// recover working directory.
@@ -238,8 +243,9 @@ function installed_version(repository_path, callback, target_directory) {
 		} catch (e) {
 			recover_working_directory();
 		}
-	else
+	} else {
 		recover_working_directory();
+	}
 
 	return version_data;
 }
@@ -438,6 +444,7 @@ function update_via_7zip(version_data, post_install, target_directory) {
 		// 清理戰場。
 		node_fs.unlinkSync(target_file);
 	} catch (e) {
+		// node_fs.unlinkSync() may throw but no matter
 	}
 
 	// 先確認/轉到目標目錄，才能 open file。
@@ -560,8 +567,9 @@ function simplify_path(path) {
 // 把 source_directory 下面的檔案全部搬移到 target_directory 下面去。
 function move_all_files_under_directory(source_directory, target_directory,
 		overwrite, create_empty_directory) {
-	if (!target_directory)
+	if (!target_directory) {
 		return 'NEEDLESS';
+	}
 
 	function move(_source, _target) {
 		var fso_list = node_fs.readdirSync(_source);
@@ -602,7 +610,7 @@ function move_all_files_under_directory(source_directory, target_directory,
 // --------------------------------------------------------------------------------------------
 // actions after file extracted
 
-function default_post_install_for_all(base_directory) {
+function default_post_install_for_all(/* base_directory */) {
 }
 
 function default_post_install(base_directory, update_script_path) {
@@ -627,6 +635,7 @@ function default_post_install(base_directory, update_script_path) {
 							'.sample$1'), base_directory
 					+ repository_path_list_file);
 		} catch (e) {
+			// node_fs.renameSync() may throw
 			// TODO: handle exception
 		}
 	}
@@ -638,6 +647,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	try {
 		node_fs.unlinkSync(taregt_path);
 	} catch (e) {
+		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
 	}
 	if (false)
