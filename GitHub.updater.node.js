@@ -96,7 +96,6 @@ function detect_base_path(repository, branch) {
 				.toString();
 	} catch (e) {
 		// node_fs.readFileSync() may throw but no matter
-		;
 	}
 
 	if (!CeL_path_list) {
@@ -141,7 +140,6 @@ function detect_base_path(repository, branch) {
 			}
 		} catch (e) {
 			// try next path
-			;
 		}
 
 		return false;
@@ -374,7 +372,6 @@ function detect_extract_program_path(extract_program_path) {
 				return true;
 			} catch (e) {
 				// console.error(e);
-				;
 			}
 			// process.stderr.write = stderr;
 			return false;
@@ -438,7 +435,6 @@ function update_via_7zip(version_data, post_install, target_directory) {
 		node_fs.unlinkSync(target_file);
 	} catch (e) {
 		// node_fs.unlinkSync() may throw but no matter
-		;
 	}
 
 	// 先確認/轉到目標目錄，才能 open file。
@@ -535,7 +531,6 @@ function update_via_7zip(version_data, post_install, target_directory) {
 				node_fs.unlinkSync(target_file);
 			} catch (e) {
 				// node_fs.unlinkSync() may throw but no matter
-				;
 			}
 
 			move_all_files_under_directory(repository + '-' + branch,
@@ -547,8 +542,9 @@ function update_via_7zip(version_data, post_install, target_directory) {
 			// 成功解壓縮。
 			console.info('Successful decompression: ' + repository);
 
-			if (typeof post_install === 'function')
+			if (typeof post_install === 'function') {
 				post_install(update_script_path);
+			}
 		}
 
 		// throw 'Some error occurred! Bad archive?';
@@ -637,7 +633,6 @@ function default_post_install(base_directory, update_script_path) {
 		} catch (e) {
 			// node_fs.renameSync() may throw
 			// TODO: handle exception
-			;
 		}
 	}
 }
@@ -650,7 +645,6 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	} catch (e) {
 		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
-		;
 	}
 	if (false) {
 		console.log('copy_library_file [' + update_script_path + source_name
