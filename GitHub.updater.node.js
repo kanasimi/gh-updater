@@ -355,6 +355,10 @@ function detect_extract_program_path(extract_program_path) {
 	if (Array.isArray(extract_program_path)) {
 		// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
 		if (!extract_program_path.some(function(path) {
+			path = path.trim();
+			if (!path) {
+				return false;
+			}
 			// console.log('detect_extract_program_path: ' + path);
 
 			// mute stderr
@@ -364,12 +368,13 @@ function detect_extract_program_path(extract_program_path) {
 				node_child_process.execSync(path + ' -h', {
 					stdio : 'ignore'
 				});
+				extract_program_path = path;
+				return true;
 			} catch (e) {
 				// console.error(e);
-				path = null;
 			}
 			// process.stderr.write = stderr;
-			return path && (extract_program_path = path);
+			return false;
 		})) {
 			// Can not find any extract program.
 			extract_program_path = null;
