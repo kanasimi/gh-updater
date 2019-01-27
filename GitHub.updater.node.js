@@ -111,7 +111,7 @@ function detect_base_path(repository, branch) {
 
 	if (!CeL_path_list) {
 		// ignore repository_path_list_file
-		return;
+		return undefined;
 	}
 
 	var target_directory;
@@ -127,14 +127,14 @@ function detect_base_path(repository, branch) {
 		//
 		&& path.endsWith(repository + '-' + branch)) {
 			// path is comments
-			return;
+			return undefined;
 		}
 
 		var matched = path
 				.match(/(?:^|[\\\/])([a-z_\d]+)-([a-z_\d]+)[\\\/]?$/i);
 		if (matched && (matched[1] !== repository || matched[2] !== branch)) {
 			// 是其他 repository 的 path。
-			return;
+			return undefined;
 		}
 
 		try {
@@ -142,7 +142,7 @@ function detect_base_path(repository, branch) {
 			if (fso_status.isDirectory()) {
 				if (/^\.\.(?:$|[\\\/])/.test(path)
 						&& !node_fs.existsSync('../ce.js'))
-					return;
+					return undefined;
 				target_directory = path;
 				// console.info('detect_base_path: Use base path: ' + path);
 				return true;
@@ -261,9 +261,9 @@ function get_GitHub_version(repository_path, callback, target_directory) {
 			buffer_array.push(data);
 		});
 
-		response.on('end', function(e) {
-			/** global: Buffer */
-			var contents = Buffer.concat(buffer_array, sum_size).toString(),
+		response.on('end', function(/* error */) {
+			var contents = /** global: Buffer */
+			Buffer.concat(buffer_array, sum_size).toString(),
 			//
 			latest_commit = JSON.parse(contents),
 			//
@@ -280,9 +280,9 @@ function get_GitHub_version(repository_path, callback, target_directory) {
 		});
 	})
 	//
-	.on('error', function(e) {
+	.on('error', function(error) {
 		// network error?
-		console.error(e);
+		console.error(error);
 		callback(version_data);
 	});
 }
@@ -461,13 +461,13 @@ function update_via_7zip(version_data, post_install, target_directory) {
 					+ ' KiB/s)...\r');
 		});
 
-		response.on('end', function(e) {
+		response.on('end', function(/* error */) {
 			if (total_size && sum_size !== total_size) {
 				console.error('Expected ' + total_size + ' bytes, but get '
 						+ sum_size + ' bytes!');
 			}
-			/** global: Buffer */
-			write_stream.write(Buffer.concat(buffer_array, sum_size));
+			write_stream.write(/** global: Buffer */
+			Buffer.concat(buffer_array, sum_size));
 			// flush data
 			write_stream.end();
 		});
@@ -477,10 +477,10 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	// 取得 GitHub 最新版本壓縮檔案。
 	+ user_name + '/' + repository + '/zip/' + branch, on_response)
 	//
-	.on('error', function(e) {
+	.on('error', function(error) {
 		// network error?
-		// console.error(e);
-		throw e;
+		// console.error(error);
+		throw error;
 	});
 
 	// ---------------------------
@@ -577,7 +577,7 @@ function move_all_files_under_directory(source_directory, target_directory,
 					if (overwrite)
 						node_fs.unlinkSync(_target + fso_name);
 					else
-						return;
+						return undefined;
 				}
 				// console.log(_source + fso_name+'→'+ _target + fso_name);
 				node_fs.renameSync(_source + fso_name, _target + fso_name);
