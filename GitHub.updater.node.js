@@ -25,6 +25,8 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
  *        gh-updater/GitHub.updater.node.js
  */
 
+/** global: Buffer */
+
 'use strict';
 
 // --------------------------------------------------------------------------------------------
@@ -127,22 +129,24 @@ function detect_base_path(repository, branch) {
 		//
 		&& path.endsWith(repository + '-' + branch)) {
 			// path is comments
-			return undefined;
+			return false;
 		}
 
 		var matched = path
 				.match(/(?:^|[\\\/])([a-z_\d]+)-([a-z_\d]+)[\\\/]?$/i);
 		if (matched && (matched[1] !== repository || matched[2] !== branch)) {
 			// 是其他 repository 的 path。
-			return undefined;
+			return false;
 		}
 
 		try {
 			var fso_status = node_fs.lstatSync(path);
 			if (fso_status.isDirectory()) {
 				if (/^\.\.(?:$|[\\\/])/.test(path)
-						&& !node_fs.existsSync('../ce.js'))
-					return undefined;
+						&& !node_fs.existsSync('../ce.js')) {
+					return false;
+				}
+
 				target_directory = path;
 				// console.info('detect_base_path: Use base path: ' + path);
 				return true;
@@ -150,6 +154,8 @@ function detect_base_path(repository, branch) {
 		} catch (e) {
 			// try next path
 		}
+
+		return false;
 	});
 
 	return target_directory;
@@ -262,8 +268,7 @@ function get_GitHub_version(repository_path, callback, target_directory) {
 		});
 
 		response.on('end', function(/* error */) {
-			var contents = /** global: Buffer */
-			Buffer.concat(buffer_array, sum_size).toString(),
+			var contents = Buffer.concat(buffer_array, sum_size).toString(),
 			//
 			latest_commit = JSON.parse(contents),
 			//
@@ -466,8 +471,7 @@ function update_via_7zip(version_data, post_install, target_directory) {
 				console.error('Expected ' + total_size + ' bytes, but get '
 						+ sum_size + ' bytes!');
 			}
-			write_stream.write(/** global: Buffer */
-			Buffer.concat(buffer_array, sum_size));
+			write_stream.write(Buffer.concat(buffer_array, sum_size));
 			// flush data
 			write_stream.end();
 		});
