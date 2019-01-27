@@ -5,7 +5,7 @@
 # GitHub repository auto-updater
 The project aims to develop a GitHub repository auto-updater tool using 7-Zip or unzip.
 
-##  usage 運行方式
+## usage 運行方式
 Here lists the usage of this tool.
 
 ### As CLI update tool
