@@ -1,5 +1,3 @@
-/** global: Buffer */
-
 /**
  * @name gh-updater. GitHub repository auto-updater, and auto-update CeJS via
  *       GitHub. GitHub repository 自動更新工具 / 自動配置好最新版本 CeJS 程式庫的工具。
@@ -26,6 +24,8 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
  *        2018/9/8 18:29:29 Create npm package: gh-updater, _CeL.updater.node.js →
  *        gh-updater/GitHub.updater.node.js
  */
+
+/** global: Buffer */
 
 'use strict';
 
@@ -250,7 +250,7 @@ function installed_version(repository_path, callback, target_directory) {
 	return version_data;
 }
 
-function get_GitHub_version(repository_path, callback, target_directory) {
+function get_GitHub_version(repository_path, callback/* , target_directory */) {
 	var version_data = parse_repository_path(repository_path), user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
 
 	console.info('Get the infomation of latest version of '
@@ -335,11 +335,12 @@ function check_and_update(repository_path, target_directory, callback) {
 		latest_version = version_data.latest_version;
 
 		function recover(update_script_path) {
-			if (typeof callback === 'function')
+			if (typeof callback === 'function') {
 				callback(version_data, recover_working_directory,
 						target_directory || '', update_script_path);
-			else if (recover_working_directory)
+			} else if (recover_working_directory) {
 				recover_working_directory();
+			}
 		}
 
 		if (version_data.has_new_version) {
@@ -540,6 +541,7 @@ function update_via_7zip(version_data, post_install, target_directory) {
 				// 解壓縮完成之後，可以不必留著程式碼檔案。 TODO: backup
 				node_fs.unlinkSync(target_file);
 			} catch (e) {
+				// node_fs.unlinkSync() may throw but no matter
 			}
 
 			move_all_files_under_directory(repository + '-' + branch,
@@ -586,16 +588,19 @@ function move_all_files_under_directory(source_directory, target_directory,
 				move(_source + fso_name, _target + fso_name);
 			} else {
 				if (node_fs.existsSync(_target + fso_name)) {
-					if (overwrite)
+					if (overwrite) {
 						node_fs.unlinkSync(_target + fso_name);
-					else
+					} else {
 						return undefined;
+					}
 				}
 				// console.log(_source + fso_name+'→'+ _target + fso_name);
 				node_fs.renameSync(_source + fso_name, _target + fso_name);
 			}
+			return undefined;
 		});
 		node_fs.rmdirSync(_source);
+		return undefined;
 	}
 
 	source_directory = simplify_path(source_directory);
@@ -605,6 +610,7 @@ function move_all_files_under_directory(source_directory, target_directory,
 				+ ']→[' + target_directory + ']');
 		move(source_directory, target_directory);
 	}
+	return undefined;
 }
 
 // --------------------------------------------------------------------------------------------
@@ -650,8 +656,9 @@ function copy_library_file(source_name, taregt_name, base_directory,
 		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
 	}
-	if (false)
+	if (false) {
 		console.log('copy_library_file [' + update_script_path + source_name
 				+ ']→[' + taregt_path + ']');
+	}
 	node_fs.renameSync(update_script_path + source_name, taregt_path);
 }
