@@ -27,9 +27,10 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
 
 'use strict';
 
+/** global: Buffer */
+
 // --------------------------------------------------------------------------------------------
 // setup. 設定區。
-
 var default_repository_path = 'kanasimi/CeJS', extract_program_path = [ '7z',
 // e.g., install p7zip package via yum
 '7za', 'unzip',
@@ -200,7 +201,7 @@ function installed_version(repository_path, callback, target_directory) {
 		target_directory += path_separator;
 	}
 
-	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
+	var latest_version_file = repository + '-' + branch + '.version.json', has_version = undefined, has_version_data;
 	console.info('Read the latest version from cache file '
 			+ latest_version_file);
 	try {
