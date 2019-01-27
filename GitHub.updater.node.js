@@ -204,7 +204,8 @@ function installed_version(repository_path, callback, target_directory) {
 		// 不累積古老的(前前次)之 version_data。
 		delete has_version_data.has_version_data;
 	} catch (e) {
-		has_version = undefined;
+		// Unexpected use of undefined. (no-undefined)
+		// has_version = undefined;
 	}
 
 	Object.assign(version_data, {
