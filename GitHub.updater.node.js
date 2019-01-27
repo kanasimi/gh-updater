@@ -27,10 +27,9 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
 
 'use strict';
 
-/** global: Buffer */
-
 // --------------------------------------------------------------------------------------------
 // setup. 設定區。
+
 var default_repository_path = 'kanasimi/CeJS', extract_program_path = [ '7z',
 // e.g., install p7zip package via yum
 '7za', 'unzip',
@@ -263,6 +262,7 @@ function get_GitHub_version(repository_path, callback, target_directory) {
 		});
 
 		response.on('end', function(e) {
+			/** global: Buffer */
 			var contents = Buffer.concat(buffer_array, sum_size).toString(),
 			//
 			latest_commit = JSON.parse(contents),
@@ -466,6 +466,7 @@ function update_via_7zip(version_data, post_install, target_directory) {
 				console.error('Expected ' + total_size + ' bytes, but get '
 						+ sum_size + ' bytes!');
 			}
+			/** global: Buffer */
 			write_stream.write(Buffer.concat(buffer_array, sum_size));
 			// flush data
 			write_stream.end();
