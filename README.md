@@ -1,6 +1,7 @@
 ﻿[![npm version](https://badge.fury.io/js/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![npm downloads](https://img.shields.io/npm/dm/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![Known Vulnerabilities](https://snyk.io/test/github/kanasimi/gh-updater/badge.svg?targetFile=package.json)](https://snyk.io/test/github/kanasimi/gh-updater?targetFile=package.json)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/2d3464182d23463bb851f99cf06eaa28)](https://app.codacy.com/app/kanasimi/gh-updater?utm_source=github.com&utm_medium=referral&utm_content=kanasimi/gh-updater&utm_campaign=Badge_Grade_Settings)
 
 # GitHub repository auto-updater
 The project aims to develop a GitHub repository auto-updater tool using 7-Zip or unzip.
