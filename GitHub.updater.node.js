@@ -44,27 +44,11 @@ repository_path_list_file = './_repository_path_list.txt',
 default_update_script_directory = '_for include/',
 
 // const
-node_https = require('https'), node_fs = require('fs'), child_process = require('child_process'), path_separator = require('path').sep,
+node_https = require('https'), node_fs = require('fs'), node_child_process = require('child_process'), path_separator = require('path').sep,
 
 PATTERN_repository_path = /([^\/]+)\/(.+?)(?:-([^-].*))?$/;
 
 // --------------------------------------------------------------------------------------------
-
-if (typeof module === 'object' && module !== require.main) {
-	// required as module
-	module.exports = {
-		parse_repository_path : parse_repository_path,
-		installed_version : installed_version,
-		get_GitHub_version : get_GitHub_version,
-		check_version : check_version,
-		// TODO: use Promise
-		update : handle_arguments
-	};
-
-} else {
-	// default action: update
-	handle_arguments(process.argv[2], process.argv[3]);
-}
 
 function handle_arguments(repository_path, target_directory, callback) {
 	if (repository_path ? PATTERN_repository_path.test(repository_path)
@@ -377,7 +361,7 @@ function detect_extract_program_path(extract_program_path) {
 			// var stderr = process.stderr.write;
 			// process.stderr.write = function() { };
 			try {
-				child_process.execSync(path + ' -h', {
+				node_child_process.execSync(path + ' -h', {
 					stdio : 'ignore'
 				});
 			} catch (e) {
@@ -416,8 +400,8 @@ function update_via_7zip(version_data, post_install, target_directory) {
 									// use stdout
 									+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
 									+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}");
-			extract_program_path = child_process.spawnSync('CScript.exe', [
-					'//Nologo', extract_program_path ]);
+			extract_program_path = node_child_process.spawnSync('CScript.exe',
+					[ '//Nologo', extract_program_path ]);
 			// add_quote()
 			extract_program_path = '"'
 					+ extract_program_path.stdout.toString().trim() + '7z.exe'
@@ -527,7 +511,7 @@ function update_via_7zip(version_data, post_install, target_directory) {
 					+ extract_program_path + ' x -y ' + quoted_target_file;
 		}
 
-		child_process.execSync(command, {
+		node_child_process.execSync(command, {
 			// pass I/O to the child process
 			// https://nodejs.org/api/child_process.html#child_process_options_stdio
 			stdio : 'inherit'
@@ -641,7 +625,7 @@ function default_post_install(base_directory, update_script_path) {
 							'.sample$1'), base_directory
 					+ repository_path_list_file);
 		} catch (e) {
-			/** node_fs.renameSync() may throw */
+			// node_fs.renameSync() may throw
 			// TODO: handle exception
 		}
 	}
@@ -653,7 +637,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	try {
 		node_fs.unlinkSync(taregt_path);
 	} catch (e) {
-		/** node_fs.unlinkSync() may throw */
+		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
 	}
 	if (false) {
@@ -661,4 +645,23 @@ function copy_library_file(source_name, taregt_name, base_directory,
 				+ ']→[' + taregt_path + ']');
 	}
 	node_fs.renameSync(update_script_path + source_name, taregt_path);
+}
+
+// --------------------------------------------------------------------------------------------
+// main process
+
+if (typeof module === 'object' && module !== require.main) {
+	// required as module
+	module.exports = {
+		parse_repository_path : parse_repository_path,
+		installed_version : installed_version,
+		get_GitHub_version : get_GitHub_version,
+		check_version : check_version,
+		// TODO: use Promise
+		update : handle_arguments
+	};
+
+} else {
+	// default action: update
+	handle_arguments(process.argv[2], process.argv[3]);
 }
