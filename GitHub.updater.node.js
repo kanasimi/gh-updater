@@ -641,7 +641,7 @@ function default_post_install(base_directory, update_script_path) {
 							'.sample$1'), base_directory
 					+ repository_path_list_file);
 		} catch (e) {
-			/* node_fs.renameSync() may throw */
+			/** node_fs.renameSync() may throw */
 			// TODO: handle exception
 		}
 	}
@@ -653,7 +653,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	try {
 		node_fs.unlinkSync(taregt_path);
 	} catch (e) {
-		/* node_fs.unlinkSync() may throw */
+		/** node_fs.unlinkSync() may throw */
 		// TODO: handle exception
 	}
 	if (false) {
