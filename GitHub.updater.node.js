@@ -315,14 +315,14 @@ function check_version(repository_path, callback, target_directory) {
 
 	installed_version(repository_path, function(version_data,
 			recover_working_directory) {
-		get_GitHub_version(version_data, function(/* version_data */) {
+		get_GitHub_version(version_data, function(version_data) {
 			version_data.has_new_version
 			//
 			= version_data.has_version !== version_data.latest_version
 					&& version_data.latest_version;
 
 			callback(version_data, recover_working_directory);
-		}, target_directory);
+		}/* , target_directory */);
 	}, target_directory);
 }
 
@@ -641,7 +641,7 @@ function default_post_install(base_directory, update_script_path) {
 							'.sample$1'), base_directory
 					+ repository_path_list_file);
 		} catch (e) {
-			// node_fs.renameSync() may throw
+			/* node_fs.renameSync() may throw */
 			// TODO: handle exception
 		}
 	}
@@ -653,7 +653,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 	try {
 		node_fs.unlinkSync(taregt_path);
 	} catch (e) {
-		// node_fs.unlinkSync() may throw
+		/* node_fs.unlinkSync() may throw */
 		// TODO: handle exception
 	}
 	if (false) {
