@@ -1,6 +1,7 @@
 ﻿[![npm version](https://badge.fury.io/js/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![npm downloads](https://img.shields.io/npm/dm/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![Known Vulnerabilities](https://snyk.io/test/github/kanasimi/gh-updater/badge.svg?targetFile=package.json)](https://snyk.io/test/github/kanasimi/gh-updater?targetFile=package.json)
+[![codebeat badge](https://codebeat.co/badges/e1f640e9-afec-482b-83b0-5c684958ba05)](https://codebeat.co/projects/github-com-kanasimi-gh-updater-master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2d3464182d23463bb851f99cf06eaa28)](https://app.codacy.com/app/kanasimi/gh-updater?utm_source=github.com&utm_medium=referral&utm_content=kanasimi/gh-updater&utm_campaign=Badge_Grade_Settings)
 
 # GitHub repository auto-updater
