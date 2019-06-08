@@ -19,9 +19,9 @@ default target directory: <code>repository-branch/</code>
 e.g.,
 ``` sh
 # install into gh-updater-master/
-node GitHub.updater.node.js kanasimi/gh-updater
+node GitHub.updater.node.js kanasimi/gh-updater-master
 # install into current directory
-node GitHub.updater.node.js kanasimi/gh-updater .
+node GitHub.updater.node.js kanasimi/gh-updater-master .
 ```
 
 If installed as <code>node_modules/.bin/gh-updater</code>:
@@ -34,10 +34,10 @@ gh-updater user/repository-branch [target_directory]
 const updater = require('gh-updater');
 
 // to check version
-updater.check_version('kanasimi/gh-updater', version_data => console.log(version_data) );
+updater.check_version('kanasimi/gh-updater-master', version_data => console.log(version_data) );
 
 // to update
-updater.update('kanasimi/gh-updater', '.');
+updater.update('kanasimi/gh-updater-master', '.');
 ```
 
 ## OS support

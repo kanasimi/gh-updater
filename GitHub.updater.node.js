@@ -45,8 +45,9 @@ default_update_script_directory = '_for include/',
 
 // const
 node_https = require('https'), node_fs = require('fs'), node_child_process = require('child_process'), path_separator = require('path').sep,
-
-PATTERN_repository_path = /([a-z\d_\-]+)\/([a-z\d_\-]+?)(?:-([a-z\d_][a-z\d_\-]*))?$/i;
+// e.g., "kanasimi/gh-updater-master"
+// matched: [ all, user_name, repository+branch ]
+PATTERN_repository_path = /([a-z\d_\-]+)\/([a-z\d_\-]+?)(?:-([a-z\d_]+))?$/i;
 
 // --------------------------------------------------------------------------------------------
 
