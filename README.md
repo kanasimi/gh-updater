@@ -14,7 +14,7 @@ Here lists the usage of this tool.
 ``` sh
 node GitHub.updater.node.js user/repository-branch [target_directory]
 ```
-default target directory: <code>repository-branch/</code>
+default target directory: `repository-branch/`
 
 e.g.,
 ``` sh
@@ -24,7 +24,7 @@ node GitHub.updater.node.js kanasimi/gh-updater-master
 node GitHub.updater.node.js kanasimi/gh-updater-master .
 ```
 
-If installed as <code>node_modules/.bin/gh-updater</code>:
+If installed as `node_modules/.bin/gh-updater`:
 ``` sh
 gh-updater user/repository-branch [target_directory]
 ```
