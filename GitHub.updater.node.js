@@ -116,10 +116,11 @@ function detect_base_path(repository, branch) {
 	// console.log(CeL_path_list);
 	// 載入 CeJS 基礎泛用之功能。（非特殊目的使用的載入功能）
 	for (var index = 0; index < CeL_path_list.length; index++) {
-		var target_directory = test_each_path.bind(repository, branch,
+		var target_directory = test_each_path(repository, branch,
 				CeL_path_list[index]);
-		if (target_directory)
+		if (target_directory) {
 			return target_directory;
+		}
 	}
 }
 
@@ -189,7 +190,8 @@ function detect_extract_program_path(extract_program_path) {
 		return extract_program_path;
 	}
 
-	var program_path = undefined;
+	// var program_path = undefined;
+	var program_path;
 	// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
 	extract_program_path.some(function(path) {
 		var normalized_path = path.trim();
