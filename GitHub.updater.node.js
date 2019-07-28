@@ -56,29 +56,26 @@ function test_each_path(repository, branch, path) {
 	//
 	&& path.endsWith(repository + '-' + branch)) {
 		// path is comments
-		return;
+		return false;
 	}
 
 	var matched = path.match(/(?:^|[\\\/])([a-z_\d]+)-([a-z_\d]+)[\\\/]?$/i);
 	if (matched && (matched[1] !== repository || matched[2] !== branch)) {
 		// 是其他 repository 的 path。
-		return;
+		return false;
 	}
 
 	// ensure `path` is directory
 	try {
 		var fso_status = node_fs.lstatSync(path);
-		if (!fso_status.isDirectory()) {
-			return;
+		if (!fso_status.isDirectory()
+		//
+		|| /^\.\.(?:$|[\\\/])/.test(path) && !node_fs.existsSync('../ce.js')) {
+			return false;
 		}
 	} catch (e) {
 		// try next path
-		return;
-	}
-
-	// assert: fso_status.isDirectory()
-	if (/^\.\.(?:$|[\\\/])/.test(path) && !node_fs.existsSync('../ce.js')) {
-		return;
+		return false;
 	}
 
 	// console.info('detect_base_path: Use base path: ' + path);
