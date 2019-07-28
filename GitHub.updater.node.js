@@ -113,6 +113,57 @@ function detect_base_path(repository, branch) {
 
 // --------------------------------------------------------------------------------------------
 
+function simplify_path(path) {
+	return path.replace(/[\\\/]+$/, '').replace(/^(?:\.\/)+/, '') || '.';
+}
+
+// 把 source_directory 下面的檔案全部搬移到 target_directory 下面去。
+function move_all_files_under_directory(source_directory, target_directory,
+		overwrite, create_empty_directory) {
+	if (!target_directory) {
+		return 'NEEDLESS';
+	}
+
+	function move(_source, _target) {
+		var fso_list = node_fs.readdirSync(_source);
+		if (!node_fs.existsSync(_target)
+		// 對於空目錄看看是否要創建一個。
+		&& (fso_list.length > 0 || create_empty_directory)) {
+			node_fs.mkdirSync(_target);
+		}
+		_source += path_separator;
+		_target += path_separator;
+		fso_list.forEach(function(fso_name) {
+			var fso_status = node_fs.lstatSync(_source + fso_name);
+			if (fso_status.isDirectory()) {
+				move(_source + fso_name, _target + fso_name);
+			} else {
+				if (node_fs.existsSync(_target + fso_name)) {
+					if (overwrite) {
+						node_fs.unlinkSync(_target + fso_name);
+					} else {
+						return undefined;
+					}
+				}
+				// console.log(_source + fso_name+'→'+ _target + fso_name);
+				node_fs.renameSync(_source + fso_name, _target + fso_name);
+			}
+			return undefined;
+		});
+		node_fs.rmdirSync(_source);
+		return undefined;
+	}
+
+	source_directory = simplify_path(source_directory);
+	target_directory = simplify_path(target_directory);
+	if (source_directory !== target_directory) {
+		console.log('move_all_files_under_directory [' + source_directory
+				+ ']→[' + target_directory + ']');
+		move(source_directory, target_directory);
+	}
+	return undefined;
+}
+
 /**
  * determine what extract program to use.
  * 
@@ -320,57 +371,6 @@ function update_via_7zip(version_data, post_install, target_directory) {
 
 }
 
-function simplify_path(path) {
-	return path.replace(/[\\\/]+$/, '').replace(/^(?:\.\/)+/, '') || '.';
-}
-
-// 把 source_directory 下面的檔案全部搬移到 target_directory 下面去。
-function move_all_files_under_directory(source_directory, target_directory,
-		overwrite, create_empty_directory) {
-	if (!target_directory) {
-		return 'NEEDLESS';
-	}
-
-	function move(_source, _target) {
-		var fso_list = node_fs.readdirSync(_source);
-		if (!node_fs.existsSync(_target)
-		// 對於空目錄看看是否要創建一個。
-		&& (fso_list.length > 0 || create_empty_directory)) {
-			node_fs.mkdirSync(_target);
-		}
-		_source += path_separator;
-		_target += path_separator;
-		fso_list.forEach(function(fso_name) {
-			var fso_status = node_fs.lstatSync(_source + fso_name);
-			if (fso_status.isDirectory()) {
-				move(_source + fso_name, _target + fso_name);
-			} else {
-				if (node_fs.existsSync(_target + fso_name)) {
-					if (overwrite) {
-						node_fs.unlinkSync(_target + fso_name);
-					} else {
-						return undefined;
-					}
-				}
-				// console.log(_source + fso_name+'→'+ _target + fso_name);
-				node_fs.renameSync(_source + fso_name, _target + fso_name);
-			}
-			return undefined;
-		});
-		node_fs.rmdirSync(_source);
-		return undefined;
-	}
-
-	source_directory = simplify_path(source_directory);
-	target_directory = simplify_path(target_directory);
-	if (source_directory !== target_directory) {
-		console.log('move_all_files_under_directory [' + source_directory
-				+ ']→[' + target_directory + ']');
-		move(source_directory, target_directory);
-	}
-	return undefined;
-}
-
 // --------------------------------------------------------------------------------------------
 
 // parse repository path
@@ -568,6 +568,24 @@ function check_and_update(repository_path, target_directory, callback) {
 }
 
 // --------------------------------------------------------------------------------------------
+
+function copy_library_file(source_name, taregt_name, base_directory,
+		update_script_path) {
+	var taregt_path = (base_directory || '') + (taregt_name || source_name);
+	try {
+		node_fs.unlinkSync(taregt_path);
+	} catch (e) {
+		// node_fs.unlinkSync() may throw
+		// TODO: handle exception
+	}
+	if (false) {
+		console.log('copy_library_file [' + update_script_path + source_name
+				+ ']→[' + taregt_path + ']');
+	}
+	node_fs.renameSync(update_script_path + source_name, taregt_path);
+}
+
+// --------------------------------------------------------------------------------------------
 // actions after file extracted
 
 function default_post_install_for_all(/* base_directory */) {
@@ -599,22 +617,6 @@ function default_post_install(base_directory, update_script_path) {
 			// TODO: handle exception
 		}
 	}
-}
-
-function copy_library_file(source_name, taregt_name, base_directory,
-		update_script_path) {
-	var taregt_path = (base_directory || '') + (taregt_name || source_name);
-	try {
-		node_fs.unlinkSync(taregt_path);
-	} catch (e) {
-		// node_fs.unlinkSync() may throw
-		// TODO: handle exception
-	}
-	if (false) {
-		console.log('copy_library_file [' + update_script_path + source_name
-				+ ']→[' + taregt_path + ']');
-	}
-	node_fs.renameSync(update_script_path + source_name, taregt_path);
 }
 
 // --------------------------------------------------------------------------------------------
