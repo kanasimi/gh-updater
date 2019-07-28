@@ -51,44 +51,6 @@ PATTERN_repository_path = /([a-z\d_\-]+)\/([a-z\d_\-]+?)(?:-([a-z\d_]+))?$/i;
 
 // --------------------------------------------------------------------------------------------
 
-function handle_arguments(repository_path, target_directory, callback) {
-	if (repository_path ? PATTERN_repository_path.test(repository_path)
-			: default_repository_path) {
-		check_and_update(repository_path || default_repository_path,
-		// run in CLI. GitHub 泛用的更新工具。
-		target_directory, function(version_data, recover_working_directory,
-				target_directory, update_script_path) {
-			if (version_data.has_new_version) {
-				// 在 repository 目錄下執行 post_install()
-				(repository_path ? default_post_install_for_all
-						: default_post_install)(target_directory,
-						update_script_path);
-				// 成功安裝了 repository 的組件。
-				console.info('Successfully installed '
-						+ version_data.repository);
-			}
-			// 之後回到原先的目錄底下。
-			if (recover_working_directory) {
-				recover_working_directory();
-			}
-			if (typeof callback === 'function') {
-				callback(version_data);
-			}
-		});
-
-	} else {
-		console.log((repository_path ? 'Invalid repository: '
-		// node GitHub.updater.node.js user/repository-branch [target_directory]
-		+ JSON.stringify(repository_path) : '') + 'Usage:\n	'
-				+ process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
-				+ process.argv[1].replace(/[^\\\/]+$/)[0]
-				+ ' "user/repository-branch" ["target_directory"]'
-				+ '\n\ndefault repository path: ' + default_repository_path);
-	}
-}
-
-// --------------------------------------------------------------------------------------------
-
 function detect_base_path(repository, branch) {
 	var CeL_path_list;
 
@@ -656,10 +618,62 @@ function copy_library_file(source_name, taregt_name, base_directory,
 }
 
 // --------------------------------------------------------------------------------------------
+
+/**
+ * handle arguments when running with CLI or calling with `updater.update(...)`
+ * 
+ * @param {String}repository_path
+ *            repository path
+ * @param {any}target_directory
+ *            target directory
+ * @param {any}callback
+ *            callback when updated
+ */
+function handle_arguments(repository_path, target_directory, callback) {
+	if (repository_path ? PATTERN_repository_path.test(repository_path)
+			: default_repository_path) {
+		check_and_update(repository_path || default_repository_path,
+		// run in CLI. GitHub 泛用的更新工具。
+		target_directory, function(version_data, recover_working_directory,
+				target_directory, update_script_path) {
+			if (version_data.has_new_version) {
+				// 在 repository 目錄下執行 post_install()
+				(repository_path ? default_post_install_for_all
+						: default_post_install)(target_directory,
+						update_script_path);
+				// 成功安裝了 repository 的組件。
+				console.info('Successfully installed '
+						+ version_data.repository);
+			}
+			// 之後回到原先的目錄底下。
+			if (recover_working_directory) {
+				recover_working_directory();
+			}
+			if (typeof callback === 'function') {
+				callback(version_data);
+			}
+		});
+
+	} else {
+		console.log((repository_path ? 'Invalid repository: '
+		// node GitHub.updater.node.js user/repository-branch [target_directory]
+		+ JSON.stringify(repository_path) : '') + 'Usage:\n	'
+				+ process.argv[0].replace(/[^\\\/]+$/)[0] + ' '
+				+ process.argv[1].replace(/[^\\\/]+$/)[0]
+				+ ' "user/repository-branch" ["target_directory"]'
+				+ '\n\ndefault repository path: ' + default_repository_path);
+	}
+}
+
+// --------------------------------------------------------------------------------------------
 // other tools
 
 // npm install package_name
 function update_package(package_name, for_development, message) {
+	if (!/^[\w\d_]+$/.test(package_name)) {
+		throw new Error('update_package: Invalid package name: ' + package_name);
+	}
+
 	var module_installed;
 	try {
 		// 先測試看看套件存不存在。存在就不用重新安裝了。
