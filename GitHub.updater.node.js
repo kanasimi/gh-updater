@@ -51,6 +51,47 @@ PATTERN_repository_path = /([a-z\d_\-]+)\/([a-z\d_\-]+?)(?:-([a-z\d_]+))?$/i;
 
 // --------------------------------------------------------------------------------------------
 
+function test_each_path(repository, branch, path) {
+	if (path.charAt(0) === '#'
+	//
+	&& path.endsWith(repository + '-' + branch)) {
+		// path is comments
+		return false;
+	}
+
+	var matched = path.match(/(?:^|[\\\/])([a-z_\d]+)-([a-z_\d]+)[\\\/]?$/i);
+	if (matched && (matched[1] !== repository || matched[2] !== branch)) {
+		// 是其他 repository 的 path。
+		return false;
+	}
+
+	try {
+		var fso_status = node_fs.lstatSync(path);
+		if (fso_status.isDirectory()) {
+			if (/^\.\.(?:$|[\\\/])/.test(path)
+					&& !node_fs.existsSync('../ce.js')) {
+				return false;
+			}
+
+			// console.info('detect_base_path: Use base path: ' + path);
+			return path;
+		}
+	} catch (e) {
+		// try next path
+	}
+
+	return false;
+}
+
+/**
+ * Detect if the repository exists in the pathes listed in the
+ * `repository_path_list_file`, test one by one.
+ * 
+ * @param {String}repository
+ *            repository name
+ * @param {String}branch
+ *            branch name
+ */
 function detect_base_path(repository, branch) {
 	var CeL_path_list;
 
@@ -66,49 +107,18 @@ function detect_base_path(repository, branch) {
 		return undefined;
 	}
 
-	var target_directory;
-
 	// modify from _CeL.loader.nodejs.js
 	CeL_path_list = CeL_path_list.split(CeL_path_list.includes('\n') ? /\r?\n/
 			: '|');
 	CeL_path_list.unshift('./' + repository + '-' + branch);
 	// console.log(CeL_path_list);
 	// 載入 CeJS 基礎泛用之功能。（非特殊目的使用的載入功能）
-	CeL_path_list.some(function(path) {
-		if (path.charAt(0) === '#'
-		//
-		&& path.endsWith(repository + '-' + branch)) {
-			// path is comments
-			return false;
-		}
-
-		var matched = path
-				.match(/(?:^|[\\\/])([a-z_\d]+)-([a-z_\d]+)[\\\/]?$/i);
-		if (matched && (matched[1] !== repository || matched[2] !== branch)) {
-			// 是其他 repository 的 path。
-			return false;
-		}
-
-		try {
-			var fso_status = node_fs.lstatSync(path);
-			if (fso_status.isDirectory()) {
-				if (/^\.\.(?:$|[\\\/])/.test(path)
-						&& !node_fs.existsSync('../ce.js')) {
-					return false;
-				}
-
-				target_directory = path;
-				// console.info('detect_base_path: Use base path: ' + path);
-				return true;
-			}
-		} catch (e) {
-			// try next path
-		}
-
-		return false;
-	});
-
-	return target_directory;
+	for (var index = 0; index < CeL_path_list.length; index++) {
+		var target_directory = test_each_path.bind(repository, branch,
+				CeL_path_list[index]);
+		if (target_directory)
+			return target_directory;
+	}
 }
 
 // --------------------------------------------------------------------------------------------
@@ -169,38 +179,41 @@ function move_all_files_under_directory(source_directory, target_directory,
  * 
  * @param {Array|String}extract_program_path
  *            Array: path list to test, String: using this path.
+ * 
+ * @returns {String} extract program path. e.g., `/path/to/7z`
  */
 function detect_extract_program_path(extract_program_path) {
-	if (Array.isArray(extract_program_path)) {
-		// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
-		if (!extract_program_path.some(function(path) {
-			path = path.trim();
-			if (!path) {
-				return false;
-			}
-			// console.log('detect_extract_program_path: ' + path);
-
-			// mute stderr
-			// var stderr = process.stderr.write;
-			// process.stderr.write = function() { };
-			try {
-				node_child_process.execSync(path + ' -h', {
-					stdio : 'ignore'
-				});
-				extract_program_path = path;
-				return true;
-			} catch (e) {
-				// console.error(e);
-			}
-			// process.stderr.write = stderr;
-			return false;
-		})) {
-			// Can not find any extract program.
-			extract_program_path = null;
-		}
+	if (!Array.isArray(extract_program_path)) {
+		return extract_program_path;
 	}
 
-	return extract_program_path;
+	var program_path = undefined;
+	// detect 7zip path: 若是 $PATH 中有 7-zip 的可執行檔，應該在這邊就能夠被偵測出來。
+	extract_program_path.some(function(path) {
+		var normalized_path = path.trim();
+		if (!normalized_path) {
+			return false;
+		}
+		// console.log('detect_extract_program_path: ' + normalized_path);
+
+		// mute stderr
+		// var stderr = process.stderr.write;
+		// process.stderr.write = function() { };
+		try {
+			node_child_process.execSync(normalized_path + ' -h', {
+				stdio : 'ignore'
+			});
+			program_path = normalized_path;
+			return true;
+		} catch (e) {
+			// console.error(e);
+		}
+		// process.stderr.write = stderr;
+		return false;
+	});
+	// else: Can not find any extract program.
+
+	return program_path;
 }
 
 function update_via_7zip(version_data, post_install, target_directory) {
