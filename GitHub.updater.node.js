@@ -113,202 +113,6 @@ function detect_base_path(repository, branch) {
 
 // --------------------------------------------------------------------------------------------
 
-// parse repository path
-function parse_repository_path(repository_path) {
-	if (typeof repository_path === 'object' && repository_path.user_name
-			&& repository_path.repository && repository_path.branch) {
-		return repository_path;
-	}
-
-	/** {String}Repository name */
-	var repository = repository_path.trim().match(PATTERN_repository_path),
-	//
-	user_name = repository[1], branch = repository[3] || 'master';
-	repository = repository[2];
-
-	return {
-		user_name : user_name,
-		repository : repository,
-		branch : branch
-	};
-}
-
-function installed_version(repository_path, callback, target_directory) {
-	var original_working_directory, version_data = parse_repository_path(repository_path),
-	//
-	repository = version_data.repository, branch = version_data.branch;
-
-	if (!target_directory) {
-		target_directory = detect_base_path(repository, branch);
-	} else if (!node_fs.existsSync(target_directory)) {
-		node_fs.mkdirSync(target_directory);
-	}
-	if (target_directory) {
-		// console.log('target_directory: ' + target_directory);
-		target_directory = target_directory.replace(/[\\\/]+$/, '');
-		if (target_directory
-				&& (target_directory.endsWith(path_separator + repository + '-'
-						+ branch) || target_directory.endsWith('\\'
-						+ repository + '-' + branch))) {
-			original_working_directory = process.cwd();
-			process.chdir(target_directory.slice(0, -(path_separator
-					+ repository + '-' + branch).length));
-		}
-		// target_directory += path_separator;
-	}
-
-	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
-	console.info('Read the latest version from cache file '
-			+ latest_version_file);
-	try {
-		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
-				.toString());
-		has_version = has_version_data.latest_version;
-		// 不累積古老的(前前次)之 version_data。
-		delete has_version_data.has_version_data;
-	} catch (e) {
-		// Unexpected use of undefined. (no-undefined)
-		// has_version = undefined;
-	}
-
-	Object.assign(version_data, {
-		check_date : new Date(),
-
-		latest_version_file : latest_version_file,
-		has_version_data : has_version_data,
-		has_version : has_version
-	});
-
-	function recover_working_directory() {
-		original_working_directory && process.chdir(original_working_directory);
-	}
-
-	if (typeof callback === 'function') {
-		try {
-			callback(version_data, original_working_directory
-			// recover working directory.
-			&& recover_working_directory);
-		} catch (e) {
-			recover_working_directory();
-		}
-	} else {
-		recover_working_directory();
-	}
-
-	return version_data;
-}
-
-function get_GitHub_version(repository_path, callback/* , target_directory */) {
-	var version_data = parse_repository_path(repository_path), user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
-
-	console.info('Get the infomation of latest version of '
-	// 取得 GitHub 最新版本 infomation。
-	+ repository + '...');
-	node_https.get({
-		// https://api.github.com/repos/kanasimi/CeJS/commits/master
-		host : 'api.github.com',
-		path : '/repos/' + user_name + '/' + repository + '/commits/' + branch,
-		// https://developer.github.com/v3/#user-agent-required
-		headers : {
-			'user-agent' : 'CeL_updater/2.0'
-		}
-	}, function(response) {
-		response.setTimeout(10000);
-		var buffer_array = [], sum_size = 0;
-
-		response.on('data', function(data) {
-			sum_size += data.length;
-			buffer_array.push(data);
-		});
-
-		response.on('end', function(/* error */) {
-			var contents = Buffer.concat(buffer_array, sum_size).toString(),
-			//
-			latest_commit = JSON.parse(contents),
-			//
-			latest_version = latest_commit.commit.author.date;
-
-			Object.assign(version_data, {
-				check_date : new Date(),
-
-				latest_commit : latest_commit,
-				latest_version : latest_version
-			});
-
-			callback(version_data);
-		});
-	})
-	//
-	.on('error', function(error) {
-		// network error?
-		console.error(error);
-		callback(version_data);
-	});
-}
-
-/**
- * detect repository version
- * 
- * @param {String}repository_path
- *            repository path. e.g., user/repository-branch
- * @param {Function}callback
- * @param {String}[target_directory]
- *            install repository to this local file system path.
- *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
- */
-function check_version(repository_path, callback, target_directory) {
-	if (!repository_path) {
-		throw 'No repository path specified!';
-	}
-
-	installed_version(repository_path, function(version_data,
-			recover_working_directory) {
-		get_GitHub_version(version_data, function(version_data) {
-			version_data.has_new_version
-			//
-			= version_data.has_version !== version_data.latest_version
-					&& version_data.latest_version;
-
-			callback(version_data, recover_working_directory);
-		}/* , target_directory */);
-	}, target_directory);
-}
-
-function check_and_update(repository_path, target_directory, callback) {
-
-	check_version(repository_path, function(version_data,
-			recover_working_directory) {
-		var has_version = version_data.has_version,
-		//
-		latest_version = version_data.latest_version;
-
-		function recover(update_script_path) {
-			if (typeof callback === 'function') {
-				callback(version_data, recover_working_directory,
-						target_directory || '', update_script_path);
-			} else if (recover_working_directory) {
-				recover_working_directory();
-			}
-		}
-
-		if (version_data.has_new_version) {
-			process.title = 'Update ' + repository_path;
-			console.info('Update: '
-					+ (has_version ? has_version + '\n     → ' : 'to ')
-					+ latest_version);
-			update_via_7zip(version_data, recover, target_directory);
-
-		} else {
-			console.info('Already have the latest version: ' + has_version);
-			recover();
-		}
-
-	}, target_directory);
-
-}
-
-// --------------------------------------------------------------------------------------------
-
 /**
  * determine what extract program to use.
  * 
@@ -568,6 +372,202 @@ function move_all_files_under_directory(source_directory, target_directory,
 }
 
 // --------------------------------------------------------------------------------------------
+
+// parse repository path
+function parse_repository_path(repository_path) {
+	if (typeof repository_path === 'object' && repository_path.user_name
+			&& repository_path.repository && repository_path.branch) {
+		return repository_path;
+	}
+
+	/** {String}Repository name */
+	var repository = repository_path.trim().match(PATTERN_repository_path),
+	//
+	user_name = repository[1], branch = repository[3] || 'master';
+	repository = repository[2];
+
+	return {
+		user_name : user_name,
+		repository : repository,
+		branch : branch
+	};
+}
+
+function installed_version(repository_path, callback, target_directory) {
+	var original_working_directory, version_data = parse_repository_path(repository_path),
+	//
+	repository = version_data.repository, branch = version_data.branch;
+
+	if (!target_directory) {
+		target_directory = detect_base_path(repository, branch);
+	} else if (!node_fs.existsSync(target_directory)) {
+		node_fs.mkdirSync(target_directory);
+	}
+	if (target_directory) {
+		// console.log('target_directory: ' + target_directory);
+		target_directory = target_directory.replace(/[\\\/]+$/, '');
+		if (target_directory
+				&& (target_directory.endsWith(path_separator + repository + '-'
+						+ branch) || target_directory.endsWith('\\'
+						+ repository + '-' + branch))) {
+			original_working_directory = process.cwd();
+			process.chdir(target_directory.slice(0, -(path_separator
+					+ repository + '-' + branch).length));
+		}
+		// target_directory += path_separator;
+	}
+
+	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
+	console.info('Read the latest version from cache file '
+			+ latest_version_file);
+	try {
+		has_version_data = JSON.parse(node_fs.readFileSync(latest_version_file)
+				.toString());
+		has_version = has_version_data.latest_version;
+		// 不累積古老的(前前次)之 version_data。
+		delete has_version_data.has_version_data;
+	} catch (e) {
+		// Unexpected use of undefined. (no-undefined)
+		// has_version = undefined;
+	}
+
+	Object.assign(version_data, {
+		check_date : new Date(),
+
+		latest_version_file : latest_version_file,
+		has_version_data : has_version_data,
+		has_version : has_version
+	});
+
+	function recover_working_directory() {
+		original_working_directory && process.chdir(original_working_directory);
+	}
+
+	if (typeof callback === 'function') {
+		try {
+			callback(version_data, original_working_directory
+			// recover working directory.
+			&& recover_working_directory);
+		} catch (e) {
+			recover_working_directory();
+		}
+	} else {
+		recover_working_directory();
+	}
+
+	return version_data;
+}
+
+function get_GitHub_version(repository_path, callback/* , target_directory */) {
+	var version_data = parse_repository_path(repository_path), user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
+
+	console.info('Get the infomation of latest version of '
+	// 取得 GitHub 最新版本 infomation。
+	+ repository + '...');
+	node_https.get({
+		// https://api.github.com/repos/kanasimi/CeJS/commits/master
+		host : 'api.github.com',
+		path : '/repos/' + user_name + '/' + repository + '/commits/' + branch,
+		// https://developer.github.com/v3/#user-agent-required
+		headers : {
+			'user-agent' : 'CeL_updater/2.0'
+		}
+	}, function(response) {
+		response.setTimeout(10000);
+		var buffer_array = [], sum_size = 0;
+
+		response.on('data', function(data) {
+			sum_size += data.length;
+			buffer_array.push(data);
+		});
+
+		response.on('end', function(/* error */) {
+			var contents = Buffer.concat(buffer_array, sum_size).toString(),
+			//
+			latest_commit = JSON.parse(contents),
+			//
+			latest_version = latest_commit.commit.author.date;
+
+			Object.assign(version_data, {
+				check_date : new Date(),
+
+				latest_commit : latest_commit,
+				latest_version : latest_version
+			});
+
+			callback(version_data);
+		});
+	})
+	//
+	.on('error', function(error) {
+		// network error?
+		console.error(error);
+		callback(version_data);
+	});
+}
+
+/**
+ * detect repository version
+ * 
+ * @param {String}repository_path
+ *            repository path. e.g., user/repository-branch
+ * @param {Function}callback
+ * @param {String}[target_directory]
+ *            install repository to this local file system path.
+ *            目標目錄位置。將會解壓縮至這個目錄底下。 default: repository-branch/
+ */
+function check_version(repository_path, callback, target_directory) {
+	if (!repository_path) {
+		throw 'No repository path specified!';
+	}
+
+	installed_version(repository_path, function(version_data,
+			recover_working_directory) {
+		get_GitHub_version(version_data, function(version_data) {
+			version_data.has_new_version
+			//
+			= version_data.has_version !== version_data.latest_version
+					&& version_data.latest_version;
+
+			callback(version_data, recover_working_directory);
+		}/* , target_directory */);
+	}, target_directory);
+}
+
+function check_and_update(repository_path, target_directory, callback) {
+
+	check_version(repository_path, function(version_data,
+			recover_working_directory) {
+		var has_version = version_data.has_version,
+		//
+		latest_version = version_data.latest_version;
+
+		function recover(update_script_path) {
+			if (typeof callback === 'function') {
+				callback(version_data, recover_working_directory,
+						target_directory || '', update_script_path);
+			} else if (recover_working_directory) {
+				recover_working_directory();
+			}
+		}
+
+		if (version_data.has_new_version) {
+			process.title = 'Update ' + repository_path;
+			console.info('Update: '
+					+ (has_version ? has_version + '\n     → ' : 'to ')
+					+ latest_version);
+			update_via_7zip(version_data, recover, target_directory);
+
+		} else {
+			console.info('Already have the latest version: ' + has_version);
+			recover();
+		}
+
+	}, target_directory);
+
+}
+
+// --------------------------------------------------------------------------------------------
 // actions after file extracted
 
 function default_post_install_for_all(/* base_directory */) {
@@ -666,7 +666,7 @@ function handle_arguments(repository_path, target_directory, callback) {
 }
 
 // --------------------------------------------------------------------------------------------
-// other tools
+// other tools not used by this module itself
 
 // npm install package_name
 function update_package(package_name, for_development, message) {
