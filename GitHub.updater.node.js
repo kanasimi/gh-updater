@@ -684,6 +684,11 @@ function handle_arguments(repository_path, target_directory, callback) {
 // --------------------------------------------------------------------------------------------
 // other tools not used by this module itself
 
+function show_info(message) {
+	process.title = message;
+	console.info('\x1b[35;46m' + message + '\x1b[0m');
+}
+
 // npm install package_name
 function update_package(package_name, for_development, message) {
 	if (!/^[\w\d_]+$/.test(package_name)) {
