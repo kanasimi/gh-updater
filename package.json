@@ -24,7 +24,7 @@
 		"email" : "vimunci@gmail.com",
 		"url" : "https://github.com/kanasimi/CeJS"
 	},
-	"contributors" : "vimunci",
+	"contributors" : [ "vimunci" ],
 	"license" : "BSD-3-Clause",
 	"bugs" : {
 		"url" : "https://github.com/kanasimi/gh-updater/issues"

@@ -656,6 +656,42 @@ function copy_library_file(source_name, taregt_name, base_directory,
 }
 
 // --------------------------------------------------------------------------------------------
+// other tools
+
+// npm install package_name
+function update_package(package_name, for_development, message) {
+	var module_installed;
+	try {
+		// 先測試看看套件存不存在。存在就不用重新安裝了。
+		require(package_name);
+		module_installed = true;
+
+		// 但這會造成套件有新版本時不會更新的問題。因此還是強制檢測安裝。
+		// return;
+	} catch (e) {
+		// e.code: 'MODULE_NOT_FOUND'
+		// console.error(e);
+	}
+
+	show_info(message || ((module_installed ? '更新' : '安裝')
+	// for development purpose
+	+ (for_development ? '開發時' : '執行時')
+	// 下載並更新本工具需要用到的套件 [gh-updater]...
+	+ '需要用到的組件 [' + package_name + ']...'));
+
+	if (!node_fs.existsSync('node_modules'))
+		node_fs.mkdirSync('node_modules');
+	require('child_process').execSync('npm install '
+	// https://github.com/kanasimi/work_crawler/issues/104
+	// https://docs.npmjs.com/cli/install
+	// npm install electron --save-dev
+	// sudo npm install -g electron --unsafe-perm=true --allow-root
+	+ (for_development ? '--save-dev ' : '') + package_name + '@latest', {
+		stdio : 'inherit'
+	});
+}
+
+// --------------------------------------------------------------------------------------------
 // main process
 
 if (typeof module === 'object' && module !== require.main) {
@@ -666,7 +702,8 @@ if (typeof module === 'object' && module !== require.main) {
 		get_GitHub_version : get_GitHub_version,
 		check_version : check_version,
 		// TODO: use Promise
-		update : handle_arguments
+		update : handle_arguments,
+		update_package : update_package
 	};
 
 } else {
