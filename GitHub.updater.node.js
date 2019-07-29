@@ -691,7 +691,7 @@ function show_info(message) {
 
 // npm install package_name
 function update_package(package_name, for_development, message) {
-	if (!/^[\w\d_]+$/.test(package_name)) {
+	if (!/^[\w\d_\-]+$/.test(package_name)) {
 		throw new Error('update_package: Invalid package name: ' + package_name);
 	}
 
