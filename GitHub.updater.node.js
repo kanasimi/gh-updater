@@ -690,7 +690,7 @@ function show_info(message) {
 }
 
 // npm install package_name
-function update_package(package_name, for_development, message) {
+function update_package(package_name, for_development, message, options) {
 	if (!/^[\w\d_\-]+$/.test(package_name)) {
 		throw new Error('update_package: Invalid package name: ' + package_name);
 	}
@@ -701,8 +701,10 @@ function update_package(package_name, for_development, message) {
 		require(package_name);
 		module_installed = true;
 
-		// 但這會造成套件有新版本時不會更新的問題。因此還是強制檢測安裝。
-		// return;
+		// 但這會造成套件有新版本時不會更新的問題。因此可能的話，還是應強制檢測安裝。
+		if (options && options.skip_installed) {
+			return;
+		}
 	} catch (e) {
 		// e.code: 'MODULE_NOT_FOUND'
 		// console.error(e);
@@ -716,7 +718,10 @@ function update_package(package_name, for_development, message) {
 
 	if (!node_fs.existsSync('node_modules'))
 		node_fs.mkdirSync('node_modules');
-	require('child_process').execSync('npm install '
+
+	require('child_process').execSync('npm '
+	//
+	+ (module_installed ? 'update' : 'install') + ' '
 	// https://github.com/kanasimi/work_crawler/issues/104
 	// https://docs.npmjs.com/cli/install
 	// npm install electron --save-dev
