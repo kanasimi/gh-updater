@@ -684,6 +684,17 @@ function handle_arguments(repository_path, target_directory, callback) {
 // --------------------------------------------------------------------------------------------
 // other tools not used by this module itself
 
+var npm_updated;
+function npm_update_all(force) {
+	if (npm_updated && !force)
+		return;
+
+	require('child_process').execSync('npm update', {
+		stdio : 'inherit'
+	});
+	npm_updated = true;
+}
+
 function show_info(message) {
 	process.title = message;
 	console.info('\x1b[35;46m' + message + '\x1b[0m');
@@ -716,8 +727,10 @@ function update_package(package_name, for_development, message, options) {
 	// 下載並更新本工具需要用到的套件 [gh-updater]...
 	+ '需要用到的組件 [' + package_name + ']...'));
 
-	if (!node_fs.existsSync('node_modules'))
+	if (!node_fs.existsSync('node_modules')) {
+		// Install in the current directory.
 		node_fs.mkdirSync('node_modules');
+	}
 
 	require('child_process').execSync('npm '
 	//
@@ -743,7 +756,8 @@ if (typeof module === 'object' && module !== require.main) {
 		check_version : check_version,
 		// TODO: use Promise
 		update : handle_arguments,
-		update_package : update_package
+		update_package : update_package,
+		npm_update_all : npm_update_all
 	};
 
 } else {
