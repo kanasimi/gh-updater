@@ -221,7 +221,7 @@ function detect_extract_program_path(extract_program_path) {
 
 // @see function get_URL_node() @ CeL.application.net.Ajax
 function get_proxy_server() {
-	return process.env.http_proxy;
+	return process.env.HTTPS_PROXY || process.env.http_proxy;
 }
 
 function get_target_file(version_data) {
@@ -325,7 +325,7 @@ function download_repository_archive(version_data, post_install,
 			//
 			target_directory, XMLHttp.buffer.length);
 		}, {
-			file : target_file,
+			file_name : target_file,
 			charset : 'buffer',
 			get_URL_options : {
 				error_retry : 2
