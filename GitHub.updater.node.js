@@ -311,8 +311,11 @@ function download_repository_archive(version_data, post_install,
 	//
 	+ '/' + version_data.repository + '/zip/' + version_data.branch;
 
+	// ----------------------------------------------------
+
 	if (get_proxy_server()) {
-		// using proxy server
+		console.log('It seems you using proxy server: ' + get_proxy_server()
+				+ '. Downloading tool to use proxy server...');
 		update_package('cejs');
 		var CeL = require('cejs');
 		CeL.run('application.net.Ajax');
@@ -327,6 +330,7 @@ function download_repository_archive(version_data, post_install,
 				error_retry : 2
 			}
 		});
+		return;
 	}
 
 	// ----------------------------------------------------
