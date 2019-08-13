@@ -198,6 +198,38 @@ function simplify_path(path) {
 	return path.replace(/[\\\/]+$/, '').replace(/^(?:\.\/)+/, '') || '.';
 }
 
+function recursive_move_files(_source, _target, overwrite,
+		create_empty_directory) {
+	var fso_list = node_fs.readdirSync(_source);
+	if (!node_fs.existsSync(_target)
+	// 對於空目錄看看是否要創建一個。
+	&& (fso_list.length > 0 || create_empty_directory)) {
+		node_fs.mkdirSync(_target);
+	}
+	_source += path_separator;
+	_target += path_separator;
+	fso_list.forEach(function(fso_name) {
+		var fso_status = node_fs.lstatSync(_source + fso_name);
+		if (fso_status.isDirectory()) {
+			recursive_move_files(_source + fso_name, _target + fso_name,
+					overwrite, create_empty_directory);
+		} else {
+			if (node_fs.existsSync(_target + fso_name)) {
+				if (overwrite) {
+					node_fs.unlinkSync(_target + fso_name);
+				} else {
+					return false;
+				}
+			}
+			// console.log(_source + fso_name+'→'+ _target + fso_name);
+			node_fs.renameSync(_source + fso_name, _target + fso_name);
+		}
+		return false;
+	});
+	node_fs.rmdirSync(_source);
+	return false;
+}
+
 // 把 source_directory 下面的檔案全部搬移到 target_directory 下面去。
 function move_all_files_under_directory(source_directory, target_directory,
 		overwrite, create_empty_directory) {
@@ -205,42 +237,13 @@ function move_all_files_under_directory(source_directory, target_directory,
 		return 'NEEDLESS';
 	}
 
-	function move(_source, _target) {
-		var fso_list = node_fs.readdirSync(_source);
-		if (!node_fs.existsSync(_target)
-		// 對於空目錄看看是否要創建一個。
-		&& (fso_list.length > 0 || create_empty_directory)) {
-			node_fs.mkdirSync(_target);
-		}
-		_source += path_separator;
-		_target += path_separator;
-		fso_list.forEach(function(fso_name) {
-			var fso_status = node_fs.lstatSync(_source + fso_name);
-			if (fso_status.isDirectory()) {
-				move(_source + fso_name, _target + fso_name);
-			} else {
-				if (node_fs.existsSync(_target + fso_name)) {
-					if (overwrite) {
-						node_fs.unlinkSync(_target + fso_name);
-					} else {
-						return false;
-					}
-				}
-				// console.log(_source + fso_name+'→'+ _target + fso_name);
-				node_fs.renameSync(_source + fso_name, _target + fso_name);
-			}
-			return false;
-		});
-		node_fs.rmdirSync(_source);
-		return false;
-	}
-
 	source_directory = simplify_path(source_directory);
 	target_directory = simplify_path(target_directory);
 	if (source_directory !== target_directory) {
 		console.log('move_all_files_under_directory [' + source_directory
 				+ ']→[' + target_directory + ']');
-		move(source_directory, target_directory);
+		recursive_move_files(source_directory, target_directory, overwrite,
+				create_empty_directory);
 	}
 	// return undefined;
 	return false;
@@ -751,12 +754,15 @@ function default_post_install_for_all(/* base_directory */) {
 }
 
 function default_post_install(base_directory, update_script_path) {
-	if (false) {
-		// using npm instead: require('gh-updater');
-		console.info('Update the tool itself...');
-		copy_library_file('gh-updater/GitHub.updater.node.js', null,
-				base_directory);
-	}
+	/**
+	 * for debug <code>
+
+	// using npm instead: require('gh-updater');
+	console.info('Update the tool itself...');
+	copy_library_file('gh-updater/GitHub.updater.node.js', null, base_directory);
+
+	 </code>
+	 */
 
 	console.info('Setup basic execution environment...');
 	copy_library_file('_CeL.loader.nodejs.js', null, base_directory,
