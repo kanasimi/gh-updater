@@ -224,7 +224,7 @@ function get_target_file(version_data) {
 }
 
 function extract_repository_archive(version_data, post_install,
-		target_directory) {
+		target_directory, sum_size) {
 	/** {String}下載之後將壓縮檔存成這個檔名。 */
 	var target_file = get_target_file(version_data);
 
@@ -235,7 +235,7 @@ function extract_repository_archive(version_data, post_install,
 	var file_size = node_fs.statSync(target_file).size;
 	if (file_size !== sum_size) {
 		throw 'The file size ' + file_size + ' is not ' + sum_size
-				+ '! Please try to run again.';
+				+ ' bytes! Please try to run again.';
 	}
 
 	if (!extract_program_path) {
@@ -356,7 +356,7 @@ function download_repository_archive(version_data, post_install,
 	write_stream.on('close', function() {
 		extract_repository_archive(version_data, post_install,
 		//
-		target_directory);
+		target_directory, sum_size);
 	});
 }
 
