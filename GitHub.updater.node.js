@@ -667,8 +667,9 @@ function check_version(repository_path, callback, target_directory) {
 		get_GitHub_version(version_data, function(version_data) {
 			version_data.has_new_version
 			//
-			= version_data.has_version !== version_data.latest_version
-					&& version_data.latest_version;
+			= !version_data.has_version || version_data.latest_version
+			//
+			&& version_data.has_version !== version_data.latest_version;
 
 			callback(version_data, recover_working_directory);
 		}/* , target_directory */);
