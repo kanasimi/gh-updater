@@ -315,11 +315,19 @@ function download_repository_archive(version_data, post_install,
 	// ----------------------------------------------------
 
 	if (get_proxy_server()) {
-		console.log('It seems you using proxy server: ' + get_proxy_server()
-				+ '. Downloading tool to use proxy server...');
-		update_package('cejs');
-		var CeL = require('cejs');
+		var CeL;
+		try {
+			CeL = require('cejs');
+		} catch (e) {
+			console.log('It seems you using proxy server: '
+					+ get_proxy_server()
+					+ '. Downloading tool to use proxy server...');
+			update_package('cejs');
+			CeL = require('cejs');
+		}
+
 		CeL.run('application.net.Ajax');
+
 		CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
 			extract_repository_archive(version_data, post_install,
 			//
@@ -339,14 +347,14 @@ function download_repository_archive(version_data, post_install,
 	// 先確認/轉到目標目錄，才能 open file。
 	var write_stream = node_fs.createWriteStream(target_file),
 	// 已經取得的檔案大小
-	sum_size = 0, start_time = Date.now(), total_size;
+	sum_size = 0, start_time = Date.now(), total_length;
 
 	function on_response(response) {
 		// 採用這種方法容易漏失資料。 @ node.js v7.7.3
 		// response.pipe(write_stream);
 
 		// 可惜 GitHub 沒有提供 Content-Length，無法加上下載進度。
-		total_size = +response.headers['content-length'];
+		total_length = +response.headers['content-length'];
 		var buffer_array = [];
 
 		response.on('data', function(data) {
@@ -354,17 +362,17 @@ function download_repository_archive(version_data, post_install,
 			buffer_array.push(data);
 			process.stdout.write(target_file + ': ' + sum_size
 			//
-			+ (total_size ? '/' + total_size : '') + ' bytes ('
+			+ (total_length ? '/' + total_length : '') + ' bytes ('
 			// 00% of 0.00MiB
-			+ (total_size ? (100 * sum_size / total_size | 0) + '%, ' : '')
+			+ (total_length ? (100 * sum_size / total_length | 0) + '%, ' : '')
 			//
 			+ (sum_size / 1.024 / (Date.now() - start_time)).toFixed(2)
 					+ ' KiB/s)...\r');
 		});
 
 		response.on('end', function(/* error */) {
-			if (total_size && sum_size !== total_size) {
-				console.error('Expected ' + total_size + ' bytes, but get '
+			if (total_length && sum_size !== total_length) {
+				console.error('Expected ' + total_length + ' bytes, but get '
 						+ sum_size + ' bytes!');
 			}
 			write_stream.write(Buffer.concat(buffer_array, sum_size));
