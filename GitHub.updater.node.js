@@ -217,52 +217,84 @@ function detect_extract_program_path(extract_program_path) {
 	return program_path;
 }
 
-function update_via_7zip(version_data, post_install, target_directory) {
-	var latest_version = version_data.latest_version, user_name = version_data.user_name, repository = version_data.repository, branch = version_data.branch;
+// --------------------------------------------------------
 
-	extract_program_path = detect_extract_program_path(extract_program_path);
-	if (!extract_program_path
-	// Windows 10: 'win32'
-	&& process.platform.startsWith('win')) {
-		try {
-			extract_program_path = (process.env.TEMP || process.env.TMP || '.')
-					+ path_separator + 'detect_7z_path.' + Math.random()
-					+ '.js';
-			// @see CeL.application.storage.archive
-			// @see run_JSctipt() @ CeL.application.platform.nodejs
-			// try to read 7z program path from Windows registry
-			node_fs
-					.writeFileSync(
-							extract_program_path,
-							"var WshShell=WScript.CreateObject('WScript.Shell'),key='HKCU\\\\Software\\\\7-Zip\\\\Path';"
-									// use stdout
-									+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
-									+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}");
-			extract_program_path = node_child_process.spawnSync('CScript.exe',
-					[ '//Nologo', extract_program_path ]);
-			// add_quote()
-			extract_program_path = '"'
-					+ extract_program_path.stdout.toString().trim() + '7z.exe'
-					+ '"';
-			// console.log(extract_program_path);
-			extract_program_path = detect_extract_program_path([ extract_program_path ]);
-		} catch (e) {
-			extract_program_path = null;
-		}
+function get_target_file(version_data) {
+	return version_data.repository + '-' + version_data.branch + '.zip';
+}
+
+function extract_repository_archive(version_data, post_install,
+		target_directory) {
+	/** {String}下載之後將壓縮檔存成這個檔名。 */
+	var target_file = get_target_file(version_data);
+
+	console.info(target_file + ': ' + sum_size
+			+ ' bytes done. Extracting files to ' + process.cwd() + '...');
+
+	// check file size
+	var file_size = node_fs.statSync(target_file).size;
+	if (file_size !== sum_size) {
+		throw 'The file size ' + file_size + ' is not ' + sum_size
+				+ '! Please try to run again.';
 	}
 
 	if (!extract_program_path) {
-		// 'Please set up the extract_program_path first!'
-		console.error('Please install 7-Zip first: https://www.7-zip.org/');
+		throw 'Please extract the archive file manually: ' + target_file;
 	}
 
-	// assert: typeof extract_program_path === 'string'
-	// console.log(extract_program_path);
+	var command,
+	//
+	quoted_target_file = '"' + target_file + '"';
+	if (extract_program_path.includes('unzip')) {
+		command = extract_program_path + ' -t ' + quoted_target_file + ' && '
+		// 解開 GitHub 最新版本壓縮檔案 via unzip。
+		+ extract_program_path + ' -x -o ' + quoted_target_file;
+	} else {
+		command = extract_program_path + ' t ' + quoted_target_file + ' && '
+		// 解開 GitHub 最新版本壓縮檔案 via 7z。
+		+ extract_program_path + ' x -y ' + quoted_target_file;
+	}
 
-	// --------------------------------------------------------------------------------------------
+	node_child_process.execSync(command, {
+		// pass I/O to the child process
+		// https://nodejs.org/api/child_process.html#child_process_options_stdio
+		stdio : 'inherit'
+	});
 
+	if (version_data.latest_version) {
+		node_fs.writeFileSync(version_data.latest_version_file, JSON
+				.stringify(version_data));
+
+		try {
+			// 解壓縮完成之後，可以不必留著程式碼檔案。 TODO: backup
+			node_fs.unlinkSync(target_file);
+		} catch (e) {
+			// node_fs.unlinkSync() may throw but no matter
+		}
+
+		var repository_path = version_data.repository + '-'
+				+ version_data.branch;
+		move_all_files_under_directory(repository_path, target_directory, true);
+		var update_script_path = (target_directory ? target_directory.replace(
+				/[\\\/]+$/, '') : repository_path)
+				+ path_separator + default_update_script_directory;
+
+		// 成功解壓縮。
+		console.info('Successful decompression: ' + version_data.repository);
+
+		if (typeof post_install === 'function') {
+			post_install(update_script_path);
+		}
+	}
+
+	// throw 'Some error occurred! Bad archive?';
+}
+
+function download_repository_archive(version_data, post_install,
+		target_directory) {
 	/** {String}下載之後將壓縮檔存成這個檔名。 */
-	var target_file = repository + '-' + branch + '.zip';
+	var target_file = get_target_file(version_data);
+
 	try {
 		// 清理戰場。
 		node_fs.unlinkSync(target_file);
@@ -307,9 +339,11 @@ function update_via_7zip(version_data, post_install, target_directory) {
 		});
 	}
 
-	node_https.get('https://codeload.github.com/'
-	// 取得 GitHub 最新版本壓縮檔案。
-	+ user_name + '/' + repository + '/zip/' + branch, on_response)
+	node_https.get(
+	// 取得 GitHub 最新版本 .zip 壓縮檔案。
+	'https://codeload.github.com/' + version_data.user_name + '/'
+	//
+	+ version_data.repository + '/zip/' + version_data.branch, on_response)
 	//
 	.on('error', function(error) {
 		// network error?
@@ -320,69 +354,55 @@ function update_via_7zip(version_data, post_install, target_directory) {
 	// ---------------------------
 
 	write_stream.on('close', function() {
-		console.info(target_file + ': ' + sum_size
-				+ ' bytes done. Extracting files to ' + process.cwd() + '...');
-
-		// check file size
-		var file_size = node_fs.statSync(target_file).size;
-		if (file_size !== sum_size) {
-			throw 'The file size ' + file_size + ' is not ' + sum_size
-					+ '! Please try to run again.';
-		}
-
-		if (!extract_program_path) {
-			throw 'Please extract the archive file manually: ' + target_file;
-		}
-
-		var command,
+		extract_repository_archive(version_data, post_install,
 		//
-		quoted_target_file = '"' + target_file + '"';
-		if (extract_program_path.includes('unzip')) {
-			command = extract_program_path + ' -t ' + quoted_target_file
-					+ ' && '
-					// 解開 GitHub 最新版本壓縮檔案 via unzip。
-					+ extract_program_path + ' -x -o ' + quoted_target_file;
-		} else {
-			command = extract_program_path + ' t ' + quoted_target_file
-					+ ' && '
-					// 解開 GitHub 最新版本壓縮檔案 via 7z。
-					+ extract_program_path + ' x -y ' + quoted_target_file;
-		}
-
-		node_child_process.execSync(command, {
-			// pass I/O to the child process
-			// https://nodejs.org/api/child_process.html#child_process_options_stdio
-			stdio : 'inherit'
-		});
-
-		if (latest_version) {
-			node_fs.writeFileSync(version_data.latest_version_file, JSON
-					.stringify(version_data));
-
-			try {
-				// 解壓縮完成之後，可以不必留著程式碼檔案。 TODO: backup
-				node_fs.unlinkSync(target_file);
-			} catch (e) {
-				// node_fs.unlinkSync() may throw but no matter
-			}
-
-			move_all_files_under_directory(repository + '-' + branch,
-					target_directory, true);
-			var update_script_path = (target_directory ? target_directory
-					.replace(/[\\\/]+$/, '') : repository + '-' + branch)
-					+ path_separator + default_update_script_directory;
-
-			// 成功解壓縮。
-			console.info('Successful decompression: ' + repository);
-
-			if (typeof post_install === 'function') {
-				post_install(update_script_path);
-			}
-		}
-
-		// throw 'Some error occurred! Bad archive?';
+		target_directory);
 	});
+}
 
+// --------------------------------------------------------
+
+function update_via_7zip(version_data, post_install, target_directory) {
+	extract_program_path = detect_extract_program_path(extract_program_path);
+	if (!extract_program_path
+	// Windows 10: 'win32'
+	&& process.platform.startsWith('win')) {
+		try {
+			extract_program_path = (process.env.TEMP || process.env.TMP || '.')
+					+ path_separator + 'detect_7z_path.' + Math.random()
+					+ '.js';
+			// @see CeL.application.storage.archive
+			// @see run_JSctipt() @ CeL.application.platform.nodejs
+			// try to read 7z program path from Windows registry
+			node_fs
+					.writeFileSync(
+							extract_program_path,
+							"var WshShell=WScript.CreateObject('WScript.Shell'),key='HKCU\\\\Software\\\\7-Zip\\\\Path';"
+									// use stdout
+									+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
+									+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}");
+			extract_program_path = node_child_process.spawnSync('CScript.exe',
+					[ '//Nologo', extract_program_path ]);
+			// add_quote()
+			extract_program_path = '"'
+					+ extract_program_path.stdout.toString().trim() + '7z.exe'
+					+ '"';
+			// console.log(extract_program_path);
+			extract_program_path = detect_extract_program_path([ extract_program_path ]);
+		} catch (e) {
+			extract_program_path = null;
+		}
+	}
+
+	if (!extract_program_path) {
+		// 'Please set up the extract_program_path first!'
+		console.error('Please install 7-Zip first: https://www.7-zip.org/');
+	}
+
+	// assert: typeof extract_program_path === 'string'
+	// console.log(extract_program_path);
+
+	download_repository_archive(version_data, post_install, target_directory);
 }
 
 // --------------------------------------------------------------------------------------------
