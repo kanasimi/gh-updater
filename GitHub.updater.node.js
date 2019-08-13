@@ -50,6 +50,70 @@ node_https = require('https'), node_fs = require('fs'), node_child_process = req
 PATTERN_repository_path = /([a-z\d_\-]+)\/([a-z\d_\-]+?)(?:-([a-z\d_]+))?$/i;
 
 // --------------------------------------------------------------------------------------------
+// other tools not used by this module itself
+
+var npm_updated;
+function npm_update_all(force) {
+	if (npm_updated && !force) {
+		return;
+	}
+
+	require('child_process').execSync('npm update', {
+		stdio : 'inherit'
+	});
+	npm_updated = true;
+}
+
+function show_info(message) {
+	process.title = message;
+	console.info('\x1b[35;46m' + message + '\x1b[0m');
+}
+
+// npm install package_name
+function update_package(package_name, for_development, message, options) {
+	if (!/^[\w\d_\-]+$/.test(package_name)) {
+		throw new Error('update_package: Invalid package name: ' + package_name);
+	}
+
+	var module_installed;
+	try {
+		// 先測試看看套件存不存在。存在就不用重新安裝了。
+		require(package_name);
+		module_installed = true;
+
+		// 但這會造成套件有新版本時不會更新的問題。因此可能的話，還是應強制檢測安裝。
+		if (options && options.skip_installed) {
+			return;
+		}
+	} catch (e) {
+		// e.code: 'MODULE_NOT_FOUND'
+		// console.error(e);
+	}
+
+	show_info(message || ((module_installed ? '更新' : '安裝')
+	// for development purpose
+	+ (for_development ? '開發時' : '執行時')
+	// 下載並更新本工具需要用到的套件 [gh-updater]...
+	+ '需要用到的組件 [' + package_name + ']...'));
+
+	if (!node_fs.existsSync('node_modules')) {
+		// Install in the current directory.
+		node_fs.mkdirSync('node_modules');
+	}
+
+	require('child_process').execSync('npm '
+	//
+	+ (module_installed ? 'update' : 'install') + ' '
+	// https://github.com/kanasimi/work_crawler/issues/104
+	// https://docs.npmjs.com/cli/install
+	// npm install electron --save-dev
+	// sudo npm install -g electron --unsafe-perm=true --allow-root
+	+ (for_development ? '--save-dev ' : '') + package_name + '@latest', {
+		stdio : 'inherit'
+	});
+}
+
+// --------------------------------------------------------------------------------------------
 
 function test_each_path(repository, branch, path) {
 	if (path.charAt(0) === '#'
@@ -90,6 +154,8 @@ function test_each_path(repository, branch, path) {
  *            CeJS repository name
  * @param {String}branch
  *            branch name
+ * 
+ * @returns {String|Undefined}base_path
  */
 function detect_base_path(repository, branch) {
 	var CeL_path_list;
@@ -103,7 +169,7 @@ function detect_base_path(repository, branch) {
 
 	if (!CeL_path_list) {
 		// ignore repository_path_list_file
-		return undefined;
+		return;
 	}
 
 	// modify from _CeL.loader.nodejs.js
@@ -337,7 +403,8 @@ function download_repository_archive(version_data, post_install,
 			charset : 'buffer',
 			get_URL_options : {
 				error_retry : 2
-			}
+			},
+			show_progress : true
 		});
 		return;
 	}
@@ -555,13 +622,14 @@ function get_GitHub_version(repository_path, callback/* , target_directory */) {
 		});
 
 		response.on('end', function(/* error */) {
-			var contents = Buffer.concat(buffer_array, sum_size).toString(),
+			var contents = Buffer.concat(buffer_array, sum_size).toString();
+			var latest_commit = JSON.parse(contents);
+			var latest_version = latest_commit.commit
 			//
-			latest_commit = JSON.parse(contents),
-			//
-			latest_version = latest_commit.commit.author.date;
+			&& latest_commit.commit.author.date;
 
 			Object.assign(version_data, {
+				// Date.now()
 				check_date : new Date(),
 
 				latest_commit : latest_commit,
@@ -738,69 +806,6 @@ function handle_arguments(repository_path, target_directory, callback) {
 				+ ' "user/repository-branch" ["target_directory"]'
 				+ '\n\ndefault repository path: ' + default_repository_path);
 	}
-}
-
-// --------------------------------------------------------------------------------------------
-// other tools not used by this module itself
-
-var npm_updated;
-function npm_update_all(force) {
-	if (npm_updated && !force)
-		return;
-
-	require('child_process').execSync('npm update', {
-		stdio : 'inherit'
-	});
-	npm_updated = true;
-}
-
-function show_info(message) {
-	process.title = message;
-	console.info('\x1b[35;46m' + message + '\x1b[0m');
-}
-
-// npm install package_name
-function update_package(package_name, for_development, message, options) {
-	if (!/^[\w\d_\-]+$/.test(package_name)) {
-		throw new Error('update_package: Invalid package name: ' + package_name);
-	}
-
-	var module_installed;
-	try {
-		// 先測試看看套件存不存在。存在就不用重新安裝了。
-		require(package_name);
-		module_installed = true;
-
-		// 但這會造成套件有新版本時不會更新的問題。因此可能的話，還是應強制檢測安裝。
-		if (options && options.skip_installed) {
-			return;
-		}
-	} catch (e) {
-		// e.code: 'MODULE_NOT_FOUND'
-		// console.error(e);
-	}
-
-	show_info(message || ((module_installed ? '更新' : '安裝')
-	// for development purpose
-	+ (for_development ? '開發時' : '執行時')
-	// 下載並更新本工具需要用到的套件 [gh-updater]...
-	+ '需要用到的組件 [' + package_name + ']...'));
-
-	if (!node_fs.existsSync('node_modules')) {
-		// Install in the current directory.
-		node_fs.mkdirSync('node_modules');
-	}
-
-	require('child_process').execSync('npm '
-	//
-	+ (module_installed ? 'update' : 'install') + ' '
-	// https://github.com/kanasimi/work_crawler/issues/104
-	// https://docs.npmjs.com/cli/install
-	// npm install electron --save-dev
-	// sudo npm install -g electron --unsafe-perm=true --allow-root
-	+ (for_development ? '--save-dev ' : '') + package_name + '@latest', {
-		stdio : 'inherit'
-	});
 }
 
 // --------------------------------------------------------------------------------------------
