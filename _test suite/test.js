@@ -24,3 +24,15 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 		CeL.assert([ CeL.GCD(4, 6), 2 ]);
 	});
 });
+
+// For node >= 10.0
+updater.update_package('wikiapi');
+var Wikiapi = require('wikiapi');
+
+// load page
+(async () => {
+	let wiki = new Wikiapi;
+	let page_data = await wiki.page('Universe');
+	CeL.assert(page_data.wikitext.includes('space]]')
+		&& page_data.wikitext.includes('time]]'), 'load page: wikitext');
+})();
