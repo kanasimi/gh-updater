@@ -386,9 +386,14 @@ function download_repository_archive(version_data, post_install,
 	// ----------------------------------------------------
 
 	if (get_proxy_server()) {
+		// 便宜之計: CeJS 安裝在當前目錄的 CeJS-master 下。
+		try {
+			require('./CeJS-master/_for include/node.loader.js');
+		} catch (e) {
+		}
 		var CeL;
 		try {
-			CeL = require('cejs');
+			CeL = global.CeL || require('cejs');
 		} catch (e) {
 			console.log('It seems you using proxy server: '
 					+ get_proxy_server()
