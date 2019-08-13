@@ -25,7 +25,7 @@ e.g.,
 ``` sh
 # install into gh-updater-master/
 node_modules/.bin/gh-updater kanasimi/gh-updater-master
-# install into current directory
+# install into **current directory**
 node_modules/.bin/gh-updater kanasimi/gh-updater-master .
 ```
 
