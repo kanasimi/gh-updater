@@ -322,7 +322,7 @@ function download_repository_archive(version_data, post_install,
 		CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
 			extract_repository_archive(version_data, post_install,
 			//
-			target_directory, data.length);
+			target_directory, XMLHttp.buffer.length);
 		}, {
 			file : target_file,
 			charset : 'buffer',
