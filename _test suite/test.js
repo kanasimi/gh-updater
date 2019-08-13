@@ -7,7 +7,10 @@ var updater = require('../GitHub.updater.node.js');
 
 // ============================================================================
 
+var CeL;
+
 function main_test() {
+	// to check version
 	updater.check_version('kanasimi/gh-updater-master', function(version_data) {
 		CeL.assert([ version_data.user_name, 'kanasimi' ],
 				'version_data.user_name');
@@ -27,6 +30,7 @@ function main_test() {
 	});
 }
 
+// to update
 updater.update('kanasimi/CeJS', null, function(version_data) {
 	// /home/travis/build/kanasimi/gh-updater
 	// console.log(process.cwd());
@@ -35,6 +39,7 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 	// console.log(require('fs').readdirSync('.'));
 
 	require('../CeJS-master/_for include/node.loader.js');
+	CeL = global.CeL;
 
 	main_test();
 });

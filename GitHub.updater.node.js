@@ -223,16 +223,16 @@ function move_all_files_under_directory(source_directory, target_directory,
 					if (overwrite) {
 						node_fs.unlinkSync(_target + fso_name);
 					} else {
-						return undefined;
+						return;
 					}
 				}
 				// console.log(_source + fso_name+'→'+ _target + fso_name);
 				node_fs.renameSync(_source + fso_name, _target + fso_name);
 			}
-			return undefined;
+			return;
 		});
 		node_fs.rmdirSync(_source);
-		return undefined;
+		return;
 	}
 
 	source_directory = simplify_path(source_directory);
@@ -242,7 +242,7 @@ function move_all_files_under_directory(source_directory, target_directory,
 				+ ']→[' + target_directory + ']');
 		move(source_directory, target_directory);
 	}
-	return undefined;
+	return;
 }
 
 /**
@@ -390,6 +390,7 @@ function download_repository_archive(version_data, post_install,
 		try {
 			require('./CeJS-master/_for include/node.loader.js');
 		} catch (e) {
+			// Will try another method.
 		}
 		var CeL;
 		try {
