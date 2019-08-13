@@ -26,7 +26,9 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 });
 
 // For node >= 10.0
-updater.update_package('wikiapi');
+updater.update_package('wikiapi', null, null, {
+	additional_flags : '-g'
+});
 var Wikiapi = require('wikiapi');
 
 // load page

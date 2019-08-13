@@ -107,8 +107,11 @@ function update_package(package_name, for_development, message, options) {
 	// https://github.com/kanasimi/work_crawler/issues/104
 	// https://docs.npmjs.com/cli/install
 	// npm install electron --save-dev
+	+ (for_development ? '--save-dev ' : '')
 	// sudo npm install -g electron --unsafe-perm=true --allow-root
-	+ (for_development ? '--save-dev ' : '') + package_name + '@latest', {
+	+ (options && options.additional_flags || '')
+	//
+	+ ' ' + package_name + '@latest', {
 		stdio : 'inherit'
 	});
 }
