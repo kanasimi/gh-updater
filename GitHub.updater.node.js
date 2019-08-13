@@ -223,16 +223,16 @@ function move_all_files_under_directory(source_directory, target_directory,
 					if (overwrite) {
 						node_fs.unlinkSync(_target + fso_name);
 					} else {
-						return;
+						return false;
 					}
 				}
 				// console.log(_source + fso_name+'→'+ _target + fso_name);
 				node_fs.renameSync(_source + fso_name, _target + fso_name);
 			}
-			return;
+			return false;
 		});
 		node_fs.rmdirSync(_source);
-		return;
+		return false;
 	}
 
 	source_directory = simplify_path(source_directory);
@@ -242,7 +242,8 @@ function move_all_files_under_directory(source_directory, target_directory,
 				+ ']→[' + target_directory + ']');
 		move(source_directory, target_directory);
 	}
-	return;
+	// return undefined;
+	return false;
 }
 
 /**
@@ -731,10 +732,15 @@ function copy_library_file(source_name, taregt_name, base_directory,
 		// node_fs.unlinkSync() may throw
 		// TODO: handle exception
 	}
-	if (false) {
-		console.log('copy_library_file [' + update_script_path + source_name
-				+ ']→[' + taregt_path + ']');
-	}
+
+	/**
+	 * for debug <code>
+
+	console.log('copy_library_file [' + update_script_path + source_name + ']→[' + taregt_path + ']');
+
+	 </code>
+	 */
+
 	node_fs.renameSync(update_script_path + source_name, taregt_path);
 }
 

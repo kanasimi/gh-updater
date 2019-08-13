@@ -65,4 +65,4 @@ updater.update_package('wikiapi');
 
 	 </code>
 	 */
-})();
+}());
