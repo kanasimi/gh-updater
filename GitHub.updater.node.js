@@ -219,6 +219,11 @@ function detect_extract_program_path(extract_program_path) {
 
 // --------------------------------------------------------
 
+// @see function get_URL_node() @ CeL.application.net.Ajax
+function get_proxy_server() {
+	return process.env.http_proxy;
+}
+
 function get_target_file(version_data) {
 	return version_data.repository + '-' + version_data.branch + '.zip';
 }
@@ -302,6 +307,30 @@ function download_repository_archive(version_data, post_install,
 		// node_fs.unlinkSync() may throw but no matter
 	}
 
+	var archive_url = 'https://codeload.github.com/' + version_data.user_name
+	//
+	+ '/' + version_data.repository + '/zip/' + version_data.branch;
+
+	if (get_proxy_server()) {
+		// using proxy server
+		update_package('cejs');
+		var CeL = require('cejs');
+		CeL.run('application.net.Ajax');
+		CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
+			extract_repository_archive(version_data, post_install,
+			//
+			target_directory, data.length);
+		}, {
+			file : target_file,
+			charset : 'buffer',
+			get_URL_options : {
+				error_retry : 2
+			}
+		});
+	}
+
+	// ----------------------------------------------------
+
 	// 先確認/轉到目標目錄，才能 open file。
 	var write_stream = node_fs.createWriteStream(target_file),
 	// 已經取得的檔案大小
@@ -339,11 +368,8 @@ function download_repository_archive(version_data, post_install,
 		});
 	}
 
-	node_https.get(
 	// 取得 GitHub 最新版本 .zip 壓縮檔案。
-	'https://codeload.github.com/' + version_data.user_name + '/'
-	//
-	+ version_data.repository + '/zip/' + version_data.branch, on_response)
+	node_https.get(archive_url, on_response)
 	//
 	.on('error', function(error) {
 		// network error?
@@ -374,13 +400,11 @@ function update_via_7zip(version_data, post_install, target_directory) {
 			// @see CeL.application.storage.archive
 			// @see run_JSctipt() @ CeL.application.platform.nodejs
 			// try to read 7z program path from Windows registry
-			node_fs
-					.writeFileSync(
-							extract_program_path,
-							"var WshShell=WScript.CreateObject('WScript.Shell'),key='HKCU\\\\Software\\\\7-Zip\\\\Path';"
-									// use stdout
-									+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
-									+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}");
+			var command = "var WshShell=WScript.CreateObject('WScript.Shell'),key='HKCU\\\\Software\\\\7-Zip\\\\Path';"
+					// use stdout
+					+ "try{WScript.Echo(WshShell.RegRead(key+64));WScript.Quit();}catch(e){}"
+					+ "try{WScript.Echo(WshShell.RegRead(key));}catch(e){}";
+			node_fs.writeFileSync(extract_program_path, command);
 			extract_program_path = node_child_process.spawnSync('CScript.exe',
 					[ '//Nologo', extract_program_path ]);
 			// add_quote()
@@ -401,6 +425,8 @@ function update_via_7zip(version_data, post_install, target_directory) {
 
 	// assert: typeof extract_program_path === 'string'
 	// console.log(extract_program_path);
+
+	// ------------------------------------------
 
 	download_repository_archive(version_data, post_install, target_directory);
 }
