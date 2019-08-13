@@ -8,7 +8,9 @@ var updater = require('../GitHub.updater.node.js');
 // @see work_crawler/work_crawler.updater.js
 
 updater.update('kanasimi/CeJS', null, function(version_data) {
-	var CeL = require('cejs');
+	require('./CeJS-master/_for include/_CeL.loader.nodejs.js');
 
-	console.log(CeL);
+	CeL.run([ 'data.math', 'application.debug.log' ], function() {
+		CeL.assert([ CeL.GCD(4, 6), 2 ]);
+	});
 });
