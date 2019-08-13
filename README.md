@@ -1,6 +1,7 @@
 ﻿[![npm version](https://badge.fury.io/js/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![npm downloads](https://img.shields.io/npm/dm/gh-updater.svg)](https://www.npmjs.com/package/gh-updater)
 [![Build Status](https://travis-ci.org/kanasimi/gh-updater.svg?branch=master)](https://travis-ci.org/kanasimi/gh-updater)
+[![codecov](https://codecov.io/gh/kanasimi/gh-updater/branch/master/graph/badge.svg)](https://codecov.io/gh/kanasimi/gh-updater)
 
 [![Known Vulnerabilities](https://snyk.io/test/github/kanasimi/gh-updater/badge.svg?targetFile=package.json)](https://snyk.io/test/github/kanasimi/gh-updater?targetFile=package.json)
 [![codebeat badge](https://codebeat.co/badges/e1f640e9-afec-482b-83b0-5c684958ba05)](https://codebeat.co/projects/github-com-kanasimi-gh-updater-master)
