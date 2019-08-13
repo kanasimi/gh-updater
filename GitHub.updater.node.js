@@ -239,12 +239,13 @@ function extract_repository_archive(version_data, post_install,
 	// check file size
 	var file_size = node_fs.statSync(target_file).size;
 	if (file_size !== sum_size) {
-		throw 'The file size ' + file_size + ' is not ' + sum_size
-				+ ' bytes! Please try to run again.';
+		throw new Error('The file size ' + file_size + ' is not ' + sum_size
+				+ ' bytes! Please try to run again.');
 	}
 
 	if (!extract_program_path) {
-		throw 'Please extract the archive file manually: ' + target_file;
+		throw new Error('Please extract the archive file manually: '
+				+ target_file);
 	}
 
 	var command,
@@ -292,7 +293,7 @@ function extract_repository_archive(version_data, post_install,
 		}
 	}
 
-	// throw 'Some error occurred! Bad archive?';
+	// throw new Error('Some error occurred! Bad archive?');
 }
 
 function download_repository_archive(version_data, post_install,
@@ -582,7 +583,7 @@ function get_GitHub_version(repository_path, callback/* , target_directory */) {
  */
 function check_version(repository_path, callback, target_directory) {
 	if (!repository_path) {
-		throw 'No repository path specified!';
+		throw new Error('No repository path specified!');
 	}
 
 	installed_version(repository_path, function(version_data,
