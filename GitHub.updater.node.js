@@ -386,7 +386,7 @@ function download_repository_archive(version_data, post_install,
 	// ----------------------------------------------------
 
 	if (get_proxy_server()) {
-		// 便宜之計: CeJS 安裝在當前目錄的 CeJS-master 下。
+		// 便宜之計 for CeJS 安裝在當前目錄的 CeJS-master 下。
 		try {
 			require('./CeJS-master/_for include/node.loader.js');
 		} catch (e) {

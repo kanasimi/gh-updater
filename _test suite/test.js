@@ -31,7 +31,8 @@ updater.update_package('wikiapi');
 
 // load page
 (function() {
-	return;
+	/**
+	 * <code>
 
 	var Wikiapi = require('wikiapi');
 	var wiki = new Wikiapi;
@@ -42,4 +43,7 @@ updater.update_package('wikiapi');
 		//
 		&& page_data.wikitext.includes('time]]'), 'load page: wikitext');
 	});
+
+	 </code>
+	 */
 })();
