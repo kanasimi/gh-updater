@@ -25,7 +25,7 @@
 		"gh-updater" : "gh-updater-cli.js"
 	},
 	"scripts": {
-		"test": "nyc gh-updater kanasimi/wikibot && nyc node \"_test suite/test.js\"",
+		"test": "nyc node_modules/.bin/gh-updater kanasimi/wikibot && nyc node \"_test suite/test.js\"",
 		"report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
 	},
 	"nyc": {
