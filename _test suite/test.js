@@ -29,12 +29,12 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 // process.env.NODE_PATH += ':../node_modules';
 updater.update_package('wikiapi');
 try{
-	var Wikiapi = require('./node_modules/wikiapi');
+	var Wikiapi = require('../wikiapi');
 }catch(e){
 	console.error(e);
 }
 try{
-	var Wikiapi = require('node_modules/wikiapi');
+	var Wikiapi = require('wikiapi');
 }catch(e){
 	console.error(e);
 }
