@@ -30,7 +30,7 @@
 	},
 	"nyc": {
 		"exclude": [
-			"_test suite/*"
+			"_test suite/*", "CeJS-master/*"
 		]
 	},
 
