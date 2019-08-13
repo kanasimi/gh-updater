@@ -101,7 +101,7 @@ function update_package(package_name, for_development, message, options) {
 		node_fs.mkdirSync('node_modules');
 	}
 
-	require('child_process').execSync('npm '
+	var command = 'npm '
 	//
 	+ (module_installed ? 'update' : 'install') + ' '
 	// https://github.com/kanasimi/work_crawler/issues/104
@@ -111,7 +111,9 @@ function update_package(package_name, for_development, message, options) {
 	// sudo npm install -g electron --unsafe-perm=true --allow-root
 	+ (options && options.additional_flags || '')
 	//
-	+ ' ' + package_name + '@latest', {
+	+ ' ' + package_name + '@latest';
+	console.log('Run command: ' + command);
+	require('child_process').execSync(command, {
 		stdio : 'inherit'
 	});
 }

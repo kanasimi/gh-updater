@@ -32,9 +32,13 @@ updater.update_package('wikiapi', null, null, {
 var Wikiapi = require('wikiapi');
 
 // load page
-(async () => {
-	let wiki = new Wikiapi;
-	let page_data = await wiki.page('Universe');
-	CeL.assert(page_data.wikitext.includes('space]]')
+(function() {
+	var wiki = new Wikiapi;
+	wiki.page('Universe')
+	//
+	.then(function(page_data) {
+		CeL.assert(page_data.wikitext.includes('space]]')
+		//
 		&& page_data.wikitext.includes('time]]'), 'load page: wikitext');
+	});
 })();
