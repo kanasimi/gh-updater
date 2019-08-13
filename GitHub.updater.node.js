@@ -160,7 +160,7 @@ function test_each_path(repository, branch, path) {
  * @param {String}branch
  *            branch name
  * 
- * @returns {String|Undefined}base_path
+ * @returns {String|Boolean}base_path or false
  */
 function detect_base_path(repository, branch) {
 	var CeL_path_list;
@@ -174,7 +174,7 @@ function detect_base_path(repository, branch) {
 
 	if (!CeL_path_list) {
 		// ignore repository_path_list_file
-		return;
+		return false;
 	}
 
 	// modify from _CeL.loader.nodejs.js
@@ -190,6 +190,8 @@ function detect_base_path(repository, branch) {
 			return target_directory;
 		}
 	}
+
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------
@@ -371,61 +373,42 @@ function extract_repository_archive(version_data, post_install,
 	// throw new Error('Some error occurred! Bad archive?');
 }
 
-function download_repository_archive(version_data, post_install,
-		target_directory) {
-	/** {String}下載之後將壓縮檔存成這個檔名。 */
-	var target_file = get_target_file(version_data);
-
+function download_via_proxy(archive_url, target_file, version_data,
+		post_install, target_directory) {
+	// 便宜之計 for CeJS 安裝在當前目錄的 CeJS-master 下。
 	try {
-		// 清理戰場。
-		node_fs.unlinkSync(target_file);
+		require('./CeJS-master/_for include/node.loader.js');
 	} catch (e) {
-		// node_fs.unlinkSync() may throw but no matter
+		// Will try another method.
+	}
+	var CeL;
+	try {
+		CeL = global.CeL || require('cejs');
+	} catch (e) {
+		console.log('It seems you using proxy server: ' + get_proxy_server()
+				+ '. Downloading tool to use proxy server...');
+		update_package('cejs');
+		CeL = require('cejs');
 	}
 
-	var archive_url = 'https://codeload.github.com/' + version_data.user_name
-	//
-	+ '/' + version_data.repository + '/zip/' + version_data.branch;
+	CeL.run('application.net.Ajax');
 
-	// ----------------------------------------------------
+	CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
+		extract_repository_archive(version_data, post_install,
+		//
+		target_directory, XMLHttp.buffer.length);
+	}, {
+		file_name : target_file,
+		charset : 'buffer',
+		get_URL_options : {
+			error_retry : 2
+		},
+		show_progress : true
+	});
+}
 
-	if (get_proxy_server()) {
-		// 便宜之計 for CeJS 安裝在當前目錄的 CeJS-master 下。
-		try {
-			require('./CeJS-master/_for include/node.loader.js');
-		} catch (e) {
-			// Will try another method.
-		}
-		var CeL;
-		try {
-			CeL = global.CeL || require('cejs');
-		} catch (e) {
-			console.log('It seems you using proxy server: '
-					+ get_proxy_server()
-					+ '. Downloading tool to use proxy server...');
-			update_package('cejs');
-			CeL = require('cejs');
-		}
-
-		CeL.run('application.net.Ajax');
-
-		CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
-			extract_repository_archive(version_data, post_install,
-			//
-			target_directory, XMLHttp.buffer.length);
-		}, {
-			file_name : target_file,
-			charset : 'buffer',
-			get_URL_options : {
-				error_retry : 2
-			},
-			show_progress : true
-		});
-		return;
-	}
-
-	// ----------------------------------------------------
-
+function download_via_https(archive_url, target_file, version_data,
+		post_install, target_directory) {
 	// 先確認/轉到目標目錄，才能 open file。
 	var write_stream = node_fs.createWriteStream(target_file),
 	// 已經取得的檔案大小
@@ -479,6 +462,31 @@ function download_repository_archive(version_data, post_install,
 		//
 		target_directory, sum_size);
 	});
+}
+
+function download_repository_archive(version_data, post_install,
+		target_directory) {
+	/** {String}下載之後將壓縮檔存成這個檔名。 */
+	var target_file = get_target_file(version_data);
+
+	try {
+		// 清理戰場。
+		node_fs.unlinkSync(target_file);
+	} catch (e) {
+		// node_fs.unlinkSync() may throw but no matter
+	}
+
+	var archive_url = 'https://codeload.github.com/' + version_data.user_name
+	//
+	+ '/' + version_data.repository + '/zip/' + version_data.branch;
+
+	// ----------------------------------------------------
+
+	var downloader = get_proxy_server() ? download_via_proxy
+			: download_via_https;
+
+	downloader(archive_url, target_file, version_data, post_install,
+			target_directory);
 }
 
 // --------------------------------------------------------
