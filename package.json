@@ -42,5 +42,5 @@
 		"nyc": "latest",
 		"codecov": "latest"
 	},
-	"devDependencies" : {}
+	"dependencies" : {}
 }
