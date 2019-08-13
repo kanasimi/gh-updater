@@ -13,9 +13,7 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 	// has 'CeJS-master'
 	// console.log(require('fs').readdirSync('.'));
 
-	require('../CeJS-master/ce.js');
-	// NG:
-	// require('../CeJS-master/_for include/node.loader.js');
+	require('../CeJS-master/_for include/node.loader.js');
 
 	CeL.run([ 'data.math', 'application.debug.log' ], function() {
 		CeL.assert([ CeL.GCD(4, 6), 2 ]);
