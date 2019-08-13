@@ -112,7 +112,7 @@ function update_package(package_name, for_development, message, options) {
 	+ (options && options.additional_flags || '')
 	//
 	+ ' ' + package_name + '@latest';
-	console.log('Run command: ' + command);
+	console.log('Running command at ' + process.cwd() + ': ' + command);
 	require('child_process').execSync(command, {
 		stdio : 'inherit'
 	});
