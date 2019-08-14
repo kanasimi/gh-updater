@@ -64,13 +64,56 @@ function npm_update_all(force) {
 	npm_updated = true;
 }
 
+// --------------------------------------------------------------------------------------------
+
 function show_info(message) {
 	process.title = message;
 	console.info('\x1b[35;46m' + message + '\x1b[0m');
 }
 
+// @inner
+function update_using_npm(package_name, options, module_installed) {
+	show_info(options.message || ((module_installed ? '更新' : '安裝')
+	// for development purpose
+	+ (options.development ? '開發時' : '執行時')
+	// 下載並更新本工具需要用到的套件 [gh-updater]...
+	+ '需要用到的組件 [' + package_name + ']...'));
+
+	if (!node_fs.existsSync('node_modules')) {
+		// Install in the current directory.
+		node_fs.mkdirSync('node_modules');
+	}
+
+	var command = 'npm '
+	//
+	+ (module_installed ? 'update' : 'install') + ' '
+	// for development purpose
+	// https://github.com/kanasimi/work_crawler/issues/104
+	// https://docs.npmjs.com/cli/install
+	// npm install electron --save-dev
+	+ (options.development ? '--save-dev ' : '')
+	// sudo npm install -g electron --unsafe-perm=true --allow-root
+	+ (options && options.additional_flags || '')
+	//
+	+ ' ' + package_name + '@latest';
+	console.log('Running command at ' + process.cwd() + ': ' + command);
+	require('child_process').execSync(command, {
+		stdio : 'inherit'
+	});
+}
+
 // npm install package_name
-function update_package(package_name, for_development, message, options) {
+function update_package(package_name, options) {
+	if (options === true) {
+		// updater.update_package(package_name, true);
+		options = {
+			// for development purpose
+			development : true
+		};
+	} else {
+		options = Object.create(null);
+	}
+
 	if (!/^[\w\d_\-]+$/.test(package_name)) {
 		throw new Error('update_package: Invalid package name: ' + package_name);
 	}
@@ -90,32 +133,7 @@ function update_package(package_name, for_development, message, options) {
 		// console.error(e);
 	}
 
-	show_info(message || ((module_installed ? '更新' : '安裝')
-	// for development purpose
-	+ (for_development ? '開發時' : '執行時')
-	// 下載並更新本工具需要用到的套件 [gh-updater]...
-	+ '需要用到的組件 [' + package_name + ']...'));
-
-	if (!node_fs.existsSync('node_modules')) {
-		// Install in the current directory.
-		node_fs.mkdirSync('node_modules');
-	}
-
-	var command = 'npm '
-	//
-	+ (module_installed ? 'update' : 'install') + ' '
-	// https://github.com/kanasimi/work_crawler/issues/104
-	// https://docs.npmjs.com/cli/install
-	// npm install electron --save-dev
-	+ (for_development ? '--save-dev ' : '')
-	// sudo npm install -g electron --unsafe-perm=true --allow-root
-	+ (options && options.additional_flags || '')
-	//
-	+ ' ' + package_name + '@latest';
-	console.log('Running command at ' + process.cwd() + ': ' + command);
-	require('child_process').execSync(command, {
-		stdio : 'inherit'
-	});
+	update_using_npm(package_name, options, module_installed);
 }
 
 // --------------------------------------------------------------------------------------------
@@ -200,6 +218,7 @@ function simplify_path(path) {
 	return path.replace(/[\\\/]+$/, '').replace(/^(?:\.\/)+/, '') || '.';
 }
 
+// @inner
 function recursive_move_files(_source, _target, overwrite,
 		create_empty_directory) {
 	var fso_list = node_fs.readdirSync(_source);
@@ -373,8 +392,17 @@ function extract_repository_archive(version_data, post_install,
 	// throw new Error('Some error occurred! Bad archive?');
 }
 
-function download_via_proxy(archive_url, target_file, version_data,
-		post_install, target_directory) {
+// @inner
+function download_via_proxy(options) {
+	/**
+	 * <code>
+
+	let [ archive_url, target_file, version_data, post_install, target_directory ] = options;
+
+	 </code>
+	 */
+	var archive_url = options[0], target_file = options[1], version_data = options[2], post_install = options[3], target_directory = options[4];
+
 	// 便宜之計 for CeJS 安裝在當前目錄的 CeJS-master 下。
 	try {
 		require('./CeJS-master/_for include/node.loader.js');
@@ -407,8 +435,17 @@ function download_via_proxy(archive_url, target_file, version_data,
 	});
 }
 
-function download_via_https(archive_url, target_file, version_data,
-		post_install, target_directory) {
+// @inner
+function download_via_https(options) {
+	/**
+	 * <code>
+
+	let [ archive_url, target_file, version_data, post_install, target_directory ] = options;
+
+	 </code>
+	 */
+	var archive_url = options[0], target_file = options[1], version_data = options[2], post_install = options[3], target_directory = options[4];
+
 	// 先確認/轉到目標目錄，才能 open file。
 	var write_stream = node_fs.createWriteStream(target_file),
 	// 已經取得的檔案大小
@@ -485,8 +522,8 @@ function download_repository_archive(version_data, post_install,
 	var downloader = get_proxy_server() ? download_via_proxy
 			: download_via_https;
 
-	downloader(archive_url, target_file, version_data, post_install,
-			target_directory);
+	downloader([ archive_url, target_file, version_data, post_install,
+			target_directory ]);
 }
 
 // --------------------------------------------------------
