@@ -84,19 +84,26 @@ function update_using_npm(package_name, options, module_installed) {
 		node_fs.mkdirSync('node_modules');
 	}
 
-	var command = 'npm '
-	//
-	+ (module_installed ? 'update' : 'install') + ' '
-	// for development purpose
-	// https://github.com/kanasimi/work_crawler/issues/104
-	// https://docs.npmjs.com/cli/install
-	// npm install electron --save-dev
-	+ (options.development ? '--save-dev ' : '')
-	// sudo npm install -g electron --unsafe-perm=true --allow-root
-	+ (options.additional_flags || '')
-	//
-	+ ' ' + package_name + '@latest';
-	console.log('Running command at ' + process.cwd() + ': ' + command);
+	var command = [ 'npm', module_installed ? 'update' : 'install' ];
+	if (options.development) {
+		// for development purpose
+		// https://github.com/kanasimi/work_crawler/issues/104
+		// https://docs.npmjs.com/cli/install
+		// npm install electron --save-dev
+		command.push('--save-dev');
+	}
+	if (options.global) {
+		// sudo npm install -g electron --unsafe-perm=true --allow-root
+		command.push('--global');
+	}
+	if (options.additional_flags) {
+		command.push(options.additional_flags);
+	}
+	command.push(package_name + '@latest');
+	command = command.join(' ');
+
+	console.log('update_using_npm: Running command at ' + process.cwd() + ': '
+			+ command);
 	require('child_process').execSync(command, {
 		stdio : 'inherit'
 	});
