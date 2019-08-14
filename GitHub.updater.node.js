@@ -93,7 +93,7 @@ function update_using_npm(package_name, options, module_installed) {
 	// npm install electron --save-dev
 	+ (options.development ? '--save-dev ' : '')
 	// sudo npm install -g electron --unsafe-perm=true --allow-root
-	+ (options && options.additional_flags || '')
+	+ (options.additional_flags || '')
 	//
 	+ ' ' + package_name + '@latest';
 	console.log('Running command at ' + process.cwd() + ': ' + command);
@@ -104,13 +104,13 @@ function update_using_npm(package_name, options, module_installed) {
 
 // npm install package_name
 function update_package(package_name, options) {
-	if (options === true) {
+	if (typeof options === 'boolean') {
 		// updater.update_package(package_name, true);
 		options = {
 			// for development purpose
-			development : true
+			development : options
 		};
-	} else {
+	} else if (!options) {
 		options = Object.create(null);
 	}
 
@@ -125,7 +125,7 @@ function update_package(package_name, options) {
 		module_installed = true;
 
 		// 但這會造成套件有新版本時不會更新的問題。因此可能的話，還是應強制檢測安裝。
-		if (options && options.skip_installed) {
+		if (options.skip_installed) {
 			return;
 		}
 	} catch (e) {
