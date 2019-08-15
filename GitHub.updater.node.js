@@ -399,6 +399,8 @@ function extract_repository_archive(version_data, post_install,
 	// throw new Error('Some error occurred! Bad archive?');
 }
 
+var proxy_message_was_shown;
+
 // @inner
 function download_via_proxy(options) {
 	/**
@@ -420,13 +422,18 @@ function download_via_proxy(options) {
 	try {
 		CeL = global.CeL || require('cejs');
 	} catch (e) {
-		console.log('It seems you using proxy server: '
-				+ (process.env.HTTPS_PROXY ? 'HTTPS_PROXY '
-						: process.env.http_proxy ? 'http_proxy ' : '')
-				+ get_proxy_server()
-				+ '. Downloading tool to use proxy server...');
+		console.log('Downloading tool to use proxy server...');
 		update_package('cejs');
 		CeL = require('cejs');
+	}
+
+	if (!proxy_message_was_shown) {
+		// showing once.
+		proxy_message_was_shown = true;
+		CeL.info('It seems you using proxy server: '
+				+ (process.env.HTTPS_PROXY ? 'HTTPS_PROXY '
+						: process.env.http_proxy ? 'http_proxy ' : '')
+				+ get_proxy_server() + '.');
 	}
 
 	CeL.run('application.net.Ajax');
