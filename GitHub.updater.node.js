@@ -420,7 +420,10 @@ function download_via_proxy(options) {
 	try {
 		CeL = global.CeL || require('cejs');
 	} catch (e) {
-		console.log('It seems you using proxy server: ' + get_proxy_server()
+		console.log('It seems you using proxy server: '
+				+ (process.env.HTTPS_PROXY ? 'HTTPS_PROXY '
+						: process.env.http_proxy ? 'http_proxy ' : '')
+				+ get_proxy_server()
 				+ '. Downloading tool to use proxy server...');
 		update_package('cejs');
 		CeL = require('cejs');
