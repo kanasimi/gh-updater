@@ -42,6 +42,8 @@ updater.update('kanasimi/CeJS', null, function(version_data) {
 	CeL = global.CeL;
 
 	main_test();
+}, {
+	fetch_opencc : true
 });
 
 // For node >= 10.0
