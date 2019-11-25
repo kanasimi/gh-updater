@@ -900,8 +900,8 @@ function handle_arguments(repository_path, target_directory, callback, options) 
 			target_directory, update_script_path) {
 		if (version_data.has_new_version) {
 			// 在 repository 目錄下執行 post_install()
-			(repository_path ? default_post_install_for_all
-					: default_post_install_cejs)(target_directory,
+			(using_default_repository ? default_post_install_cejs
+					: default_post_install_for_all)(target_directory,
 					update_script_path);
 			// 成功安裝了 repository 的組件。
 			console.info('Successfully installed ' + version_data.repository);
@@ -918,15 +918,17 @@ function handle_arguments(repository_path, target_directory, callback, options) 
 		}
 
 		// process.cwd('.') === ...'/work_crawler-master'
-		if (!repository_path && options && options.fetch_opencc) {
+		if (using_default_repository && options && options.fetch_opencc) {
 			download_opencc(prepare_to_callback);
 		} else {
 			prepare_to_callback();
 		}
 	}
 
-	if (repository_path ? PATTERN_repository_path.test(repository_path)
-			: default_repository_path) {
+	var using_default_repository = !repository_path
+			|| repository_path === default_repository_path;
+	if (using_default_repository ? default_repository_path
+			: PATTERN_repository_path.test(repository_path)) {
 		check_and_update(repository_path || default_repository_path,
 		// run in CLI. GitHub 泛用的更新工具。
 		target_directory, after_check_update);
