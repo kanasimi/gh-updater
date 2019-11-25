@@ -25,7 +25,7 @@ https://docs.microsoft.com/en-us/windows/desktop/api/shldisp/nf-shldisp-folder-c
  *        gh-updater/GitHub.updater.node.js
  */
 
-/** global: Buffer */
+/** globalThis: Buffer */
 
 'use strict';
 
@@ -402,29 +402,20 @@ function extract_repository_archive(version_data, post_install,
 var proxy_message_was_shown;
 
 // @inner
-function download_via_proxy(options) {
-	/**
-	 * <code>
-
-	let [ archive_url, target_file, version_data, post_install, target_directory ] = options;
-
-	 </code>
-	 */
-	var archive_url = options[0], target_file = options[1], version_data = options[2], post_install = options[3], target_directory = options[4];
-
+function download_via_proxy(url, callback, options) {
 	// 便宜之計 for CeJS 安裝在當前目錄的 CeJS-master 下。
 	try {
 		require('./CeJS-master/_for include/node.loader.js');
 	} catch (e) {
 		// Will try another method.
 	}
-	var CeL;
+
 	try {
-		CeL = global.CeL || require('cejs');
+		globalThis.CeL = globalThis.CeL || require('cejs');
 	} catch (e) {
 		console.log('Downloading tool to use proxy server...');
 		update_package('cejs');
-		CeL = require('cejs');
+		globalThis.CeL = require('cejs');
 	}
 
 	if (!proxy_message_was_shown) {
@@ -438,12 +429,15 @@ function download_via_proxy(options) {
 
 	CeL.run('application.net.Ajax');
 
-	CeL.get_URL_cache(archive_url, function(data, error, XMLHttp) {
-		extract_repository_archive(version_data, post_install,
-		//
-		target_directory, XMLHttp.buffer.length);
+	var file_name = options && options.file_name || url.match(/[^\\\/]+$/)[0];
+
+	CeL.get_URL_cache(url, function(data, error, XMLHttp) {
+		if (error)
+			callback(null, error);
+		else
+			callback([ data, XMLHttp.buffer.length ]);
 	}, {
-		file_name : target_file,
+		file_name : file_name,
 		charset : 'buffer',
 		get_URL_options : {
 			error_retry : 2
@@ -453,20 +447,15 @@ function download_via_proxy(options) {
 }
 
 // @inner
-function download_via_https(options) {
-	/**
-	 * <code>
-
-	let [ archive_url, target_file, version_data, post_install, target_directory ] = options;
-
-	 </code>
-	 */
-	var archive_url = options[0], target_file = options[1], version_data = options[2], post_install = options[3], target_directory = options[4];
+function download_via_https(url, callback, options) {
+	var file_name = options && options.file_name || url.match(/[^\\\/]+$/)[0];
 
 	// 先確認/轉到目標目錄，才能 open file。
-	var write_stream = node_fs.createWriteStream(target_file),
+	var write_stream = node_fs.createWriteStream(file_name),
 	// 已經取得的檔案大小
 	sum_size = 0, start_time = Date.now(), total_length;
+
+	var buffer_array = [];
 
 	function on_response(response) {
 		// 採用這種方法容易漏失資料。 @ node.js v7.7.3
@@ -474,19 +463,19 @@ function download_via_https(options) {
 
 		// 可惜 GitHub 沒有提供 Content-Length，無法加上下載進度。
 		total_length = +response.headers['content-length'];
-		var buffer_array = [];
 
 		response.on('data', function(data) {
 			sum_size += data.length;
 			buffer_array.push(data);
-			process.stdout.write(target_file + ': ' + sum_size
+			var speed_KiB = sum_size
+			/ 1.024 /(Date.now() - start_time);
+			process.stdout.write(file_name + ': ' + sum_size
 			//
 			+ (total_length ? '/' + total_length : '') + ' bytes ('
 			// 00% of 0.00MiB
 			+ (total_length ? (100 * sum_size / total_length | 0) + '%, ' : '')
 			//
-			+ (sum_size / 1.024 / (Date.now() - start_time)).toFixed(2)
-					+ ' KiB/s)...\r');
+			+ speed_KiB.toFixed(2) + ' KiB/s)...\r');
 		});
 
 		response.on('end', function(/* error */) {
@@ -494,28 +483,34 @@ function download_via_https(options) {
 				console.error('Expected ' + total_length + ' bytes, but get '
 						+ sum_size + ' bytes!');
 			}
-			write_stream.write(Buffer.concat(buffer_array, sum_size));
+			buffer_array = Buffer.concat(buffer_array, sum_size);
+			write_stream.write(buffer_array);
 			// flush data
 			write_stream.end();
 		});
 	}
 
 	// 取得 GitHub 最新版本 .zip 壓縮檔案。
-	node_https.get(archive_url, on_response)
+	node_https.get(url, on_response)
 	//
 	.on('error', function(error) {
 		// network error?
 		// console.error(error);
-		throw error;
+		callback(null, error);
 	});
 
 	// ---------------------------
 
 	write_stream.on('close', function() {
-		extract_repository_archive(version_data, post_install,
-		//
-		target_directory, sum_size);
+		callback([ buffer_array, sum_size ]);
 	});
+}
+
+function download_url(url, callback, options) {
+	var downloader = get_proxy_server() ? download_via_proxy
+			: download_via_https;
+
+	return downloader(url, callback, options);
 }
 
 function download_repository_archive(version_data, post_install,
@@ -534,13 +529,13 @@ function download_repository_archive(version_data, post_install,
 	//
 	+ '/' + version_data.repository + '/zip/' + version_data.branch;
 
-	// ----------------------------------------------------
-
-	var downloader = get_proxy_server() ? download_via_proxy
-			: download_via_https;
-
-	downloader([ archive_url, target_file, version_data, post_install,
-			target_directory ]);
+	download_url(archive_url, function(data) {
+		extract_repository_archive(version_data, post_install,
+		//
+		target_directory, data[1]);
+	}, {
+		file_name : target_file
+	});
 }
 
 // --------------------------------------------------------
@@ -815,7 +810,7 @@ function copy_library_file(source_name, taregt_name, base_directory,
 function default_post_install_for_all(/* base_directory */) {
 }
 
-function default_post_install(base_directory, update_script_path) {
+function default_post_install_cejs(base_directory, update_script_path) {
 	/**
 	 * for debug <code>
 
@@ -846,6 +841,48 @@ function default_post_install(base_directory, update_script_path) {
 	}
 }
 
+var opencc_base_url = 'https://raw.githubusercontent.com/BYVoid/OpenCC/master/data/dictionary/',
+// copy from CeL.extension.zh_conversion
+opencc_files = (
+//
+'STPhrases,STCharacters,TWPhrasesName,TWPhrasesIT'
+// 因此得要一個個 replace。
++ ',TWPhrasesOther,TWVariants,TWVariantsRevPhrases').split(',');
+
+// 2019/11/25: `npm install opencc` failed
+function download_opencc(callback) {
+	show_info('更新 OpenCC 中文繁簡體轉換工具...');
+	process.chdir('./CeJS-master' + '/extension/zh_conversion/OpenCC/');
+	var file_lsit = node_fs.readdirSync('.');
+	// console.log(node_fs.readdirSync('.'));
+
+	function finish() {
+		// recovery
+		process.chdir('../../../../');
+		callback();
+	}
+
+	var remaining = 0, waiting;
+	opencc_files.map(function(file) {
+		file += '.txt';
+		if (file_lsit.includes(file))
+			return;
+
+		remaining++;
+		download_url(opencc_base_url + file, function() {
+			if (--remaining === 0 && waiting)
+				finish();
+		}, {
+			file_name : file
+		});
+	});
+
+	if (remaining > 0)
+		waiting = true;
+	else
+		finish();
+}
+
 // --------------------------------------------------------------------------------------------
 
 /**
@@ -858,22 +895,19 @@ function default_post_install(base_directory, update_script_path) {
  * @param {any}callback
  *            callback when updated
  */
-function handle_arguments(repository_path, target_directory, callback) {
-	if (repository_path ? PATTERN_repository_path.test(repository_path)
-			: default_repository_path) {
-		check_and_update(repository_path || default_repository_path,
-		// run in CLI. GitHub 泛用的更新工具。
-		target_directory, function(version_data, recover_working_directory,
-				target_directory, update_script_path) {
-			if (version_data.has_new_version) {
-				// 在 repository 目錄下執行 post_install()
-				(repository_path ? default_post_install_for_all
-						: default_post_install)(target_directory,
-						update_script_path);
-				// 成功安裝了 repository 的組件。
-				console.info('Successfully installed '
-						+ version_data.repository);
-			}
+function handle_arguments(repository_path, target_directory, callback, options) {
+	function after_check_update(version_data, recover_working_directory,
+			target_directory, update_script_path) {
+		if (version_data.has_new_version) {
+			// 在 repository 目錄下執行 post_install()
+			(repository_path ? default_post_install_for_all
+					: default_post_install_cejs)(target_directory,
+					update_script_path);
+			// 成功安裝了 repository 的組件。
+			console.info('Successfully installed ' + version_data.repository);
+		}
+
+		function prepare_to_callback() {
 			// 之後回到原先的目錄底下。
 			if (recover_working_directory) {
 				recover_working_directory();
@@ -881,7 +915,21 @@ function handle_arguments(repository_path, target_directory, callback) {
 			if (typeof callback === 'function') {
 				callback(version_data);
 			}
-		});
+		}
+
+		// process.cwd('.') === ...'/work_crawler-master'
+		if (!repository_path && options && options.fetch_opencc) {
+			download_opencc(prepare_to_callback);
+		} else {
+			prepare_to_callback();
+		}
+	}
+
+	if (repository_path ? PATTERN_repository_path.test(repository_path)
+			: default_repository_path) {
+		check_and_update(repository_path || default_repository_path,
+		// run in CLI. GitHub 泛用的更新工具。
+		target_directory, after_check_update);
 
 	} else {
 		console.log((repository_path ? 'Invalid repository: '
@@ -904,7 +952,7 @@ if (typeof module === 'object' && module !== require.main) {
 		installed_version : installed_version,
 		get_GitHub_version : get_GitHub_version,
 		check_version : check_version,
-		// TODO: use Promise
+		// node 0.10 does not have {Promise}
 		update : handle_arguments,
 		update_package : update_package,
 		npm_update_all : npm_update_all

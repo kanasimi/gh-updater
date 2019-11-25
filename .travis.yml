@@ -8,13 +8,13 @@ language: node_js
 matrix:
     include:
         - os: linux
-          node_js: 8
+          node_js: 12
         - os: linux
-          node_js: 12
+          node_js: 13
         - os: windows
-          node_js: 12
+          node_js: 13
         - os: osx
-          node_js: 12
+          node_js: 13
 
 # https://docs.travis-ci.com/user/caching/
 # disable npm caching
