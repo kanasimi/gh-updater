@@ -65,11 +65,14 @@ function npm_update_all(force) {
 }
 
 // --------------------------------------------------------------------------------------------
+// Using in GitHub.updater.node.js work_crawler.updater.js pack_up.js
 
 function show_info(message) {
 	process.title = message;
 	console.info('\x1b[35;46m' + message + '\x1b[0m');
 }
+
+// --------------------------------------------------------------------------------------------
 
 // @inner
 function update_using_npm(package_name, options, module_installed) {
@@ -628,6 +631,8 @@ function installed_version(repository_path, callback, target_directory) {
 		}
 		// target_directory += path_separator;
 	}
+
+	// TODO: test if there are REALLY module files in the directory.
 
 	var latest_version_file = repository + '-' + branch + '.version.json', has_version, has_version_data;
 	console.info('Read the latest version from cache file '
