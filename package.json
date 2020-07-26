@@ -1,7 +1,7 @@
 {
 	"name" : "gh-updater",
 	"title" : "GitHub updater",
-	"version" : "1.6.0",
+	"version" : "1.6.1",
 	"description" : "GitHub repository auto-updater using 7zip or unzip",
 	"keywords" : [ "GitHub", "updater" ],
 	"author" : {

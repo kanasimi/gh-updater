@@ -16,13 +16,13 @@ Here lists the usage of this tool.
 
 ### As CLI update tool
 If installed as `node_modules/.bin/gh-updater`:
-``` sh
+```bash
 node_modules/.bin/gh-updater user/repository-branch [target_directory]
 ```
 default target directory: `repository-branch/`
 
 e.g.,
-``` sh
+```bash
 # install into gh-updater-master/
 node_modules/.bin/gh-updater kanasimi/gh-updater-master
 # install into **current directory**
@@ -30,12 +30,12 @@ node_modules/.bin/gh-updater kanasimi/gh-updater-master .
 ```
 
 Testing `GitHub.updater.node.js`:
-``` sh
+```bash
 node GitHub.updater.node.js user/repository-branch [target_directory]
 ```
 
 ### As node.js module
-``` JavaScript
+```javascript
 const updater = require('gh-updater');
 
 // to check version
