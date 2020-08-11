@@ -10,11 +10,11 @@ matrix:
         - os: linux
           node_js: 12
         - os: linux
-          node_js: 13
+          node_js: 14
         - os: windows
-          node_js: 13
+          node_js: 14
         - os: osx
-          node_js: 13
+          node_js: 14
 
 # https://docs.travis-ci.com/user/caching/
 # disable npm caching

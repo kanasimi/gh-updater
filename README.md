@@ -11,7 +11,13 @@
 # GitHub repository auto-updater
 The project aims to develop a GitHub repository auto-updater tool using 7-Zip or unzip.
 
-## usage 運行方式
+### Installation
+First, install via npm:
+```bash
+npm i gh-updater
+```
+
+## Usage
 Here lists the usage of this tool.
 
 ### As CLI update tool
@@ -19,7 +25,12 @@ If installed as `node_modules/.bin/gh-updater`:
 ```bash
 node_modules/.bin/gh-updater user/repository-branch [target_directory]
 ```
-default target directory: `repository-branch/`
+
+Or under Windows:
+```bash
+node_modules\.bin\gh-updater user/repository-branch [target_directory]
+```
+The commands above will extract `user/repository-branch` in default target directory: `repository-branch/`
 
 e.g.,
 ```bash
