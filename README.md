@@ -11,8 +11,9 @@
 # GitHub repository auto-updater
 The project aims to develop a GitHub repository auto-updater tool using 7-Zip or unzip.
 
-### Installation
-First, install via npm:
+## Installation
+1. Install [node.js](https://nodejs.org/). For windows, please also install [7-Zip](https://www.7-zip.org/) 18.01+.
+2. Install gh-updater via npm:
 ```bash
 npm i gh-updater
 ```
@@ -27,7 +28,7 @@ node_modules/.bin/gh-updater user/repository-branch [target_directory]
 ```
 
 Or under Windows:
-```bash
+```bat
 node_modules\.bin\gh-updater user/repository-branch [target_directory]
 ```
 The commands above will extract `user/repository-branch` in default target directory: `repository-branch/`
