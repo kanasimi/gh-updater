@@ -470,8 +470,7 @@ function download_via_https(url, callback, options) {
 		response.on('data', function(data) {
 			sum_size += data.length;
 			buffer_array.push(data);
-			var speed_KiB = sum_size
-			/ 1.024 /(Date.now() - start_time);
+			var speed_KiB = sum_size / 1.024 / (Date.now() - start_time);
 			process.stdout.write(file_name + ': ' + sum_size
 			//
 			+ (total_length ? '/' + total_length : '') + ' bytes ('
