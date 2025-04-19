@@ -20,6 +20,7 @@
 		"url" : "git+https://github.com/kanasimi/gh-updater.git"
 	},
 
+	"type": "commonjs",
 	"main" : "GitHub.updater.node.js",
 	"bin" : {
 		"gh-updater" : "gh-updater-cli.js"
